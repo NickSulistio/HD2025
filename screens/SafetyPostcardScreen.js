@@ -37,6 +37,14 @@ const POSTCARD_TYPES = [
     { id: 'volunteering', title: "I'm Volunteering", icon: 'megaphone', color: '#2196F3', message: "I'm volunteering to help during this emergency. Contact me to get involved!" }
 ];
 
+// NEW: Postcard options for step 4
+const POSTCARD_OPTIONS = [
+    { id: 'awareness', title: "Awareness Postcard", icon: 'megaphone-outline', color: '#3F51B5', message: "Let people know about your situation and invite others offer support " },
+    { id: 'priority', title: "High Priority Alert", icon: 'warning-outline', color: '#FF5722', message: "Let people know about a missing person or pet from your household." },
+    { id: 'anonymous', title: "Anonymous", icon: 'eye-off-outline', color: '#91f296', message: "For those who want to share your story, while protecting your identity." },
+    { id: 'support', title: "Offer Support", icon: 'help-buoy-outline', color: '#009688', message: "Let others know you're open to volunteering or providing resources." }
+];
+
 // Vulnerable area messages for social justice integration
 const VULNERABLE_AREA_MESSAGES = [
     "Checking in from a high-risk zone — resources are limited here.",
@@ -44,6 +52,13 @@ const VULNERABLE_AREA_MESSAGES = [
     "Your donations support communities often overlooked in disaster aid.",
     "This neighborhood has limited evacuation options and needs additional resources.",
     "Areas like this one face disproportionate impacts during emergencies."
+];
+
+// NEW: Resources options for step 1
+const RESOURCES_OPTIONS = [
+    { id: 'shelters', title: "Shelters", icon: 'home-outline', color: '#FF6F00', bgColor: 'rgba(255,111,0,0.2)' },
+    { id: 'reliefCenters', title: "Relief Centers", icon: 'medical-outline', color: '#00CE0A', bgColor: 'rgba(0,206,10,0.2)' },
+    { id: 'evacuations', title: "Evacuations", icon: 'exit-outline', color: '#FFD400', bgColor: 'rgba(255,214,12,0.2)' }
 ];
 
 const SafetyPostcardScreen = ({ navigation }) => {
@@ -73,11 +88,17 @@ const SafetyPostcardScreen = ({ navigation }) => {
     // Step 3: Badges (New)
     const [selectedBadge, setSelectedBadge] = useState(null);
 
-    // Step 4: Sharing preferences (formerly Step 3)
+    // Step 4: Create a Postcard - NEW
+    const [selectedPostcardOption, setSelectedPostcardOption] = useState(null);
+
+    // Sharing preferences (moved from step 4)
     const [incidents, setIncidents] = useState(null);
     const [includeIncidents, setIncludeIncidents] = useState(true);
     const [includeVulnerableInfo, setIncludeVulnerableInfo] = useState(true);
     const [includeTimestamp, setIncludeTimestamp] = useState(true);
+
+    // NEW: Selected resource
+    const [selectedResource, setSelectedResource] = useState(null);
 
     // Load user location and incident data
     useEffect(() => {
@@ -223,8 +244,8 @@ const SafetyPostcardScreen = ({ navigation }) => {
     };
 
     const goToNextStep = () => {
-        if (step === 1 && !selectedType) {
-            Alert.alert('Selection Required', 'Please select a safety status type');
+        if (step === 1 && !selectedResource) {
+            Alert.alert('Selection Required', 'Please select a resource option');
             return;
         }
 
@@ -233,7 +254,12 @@ const SafetyPostcardScreen = ({ navigation }) => {
             return;
         }
 
-        if (step < 4) { // Updated for 4 steps
+        if (step === 4 && !selectedPostcardOption) {
+            Alert.alert('Selection Required', 'Please select a postcard type');
+            return;
+        }
+
+        if (step < 4) {
             animateTransition(step + 1);
         } else {
             // Complete the process and share the postcard
@@ -310,12 +336,12 @@ const SafetyPostcardScreen = ({ navigation }) => {
                 />
             </View>
             <Text style={[onboardingStyles.stepText, { textAlign: 'right' }]}>
-                Step {step} of 4 {/* Updated for 4 steps */}
+                Step {step} of 4
             </Text>
         </View>
     );
 
-    // Render step 1: Example Postcard (replacing the status type selection)
+    // UPDATED: Render step 1 with Resources title and buttons
     const renderExamplePostcardStep = () => (
         <Animated.View
             style={[
@@ -329,21 +355,27 @@ const SafetyPostcardScreen = ({ navigation }) => {
                 Support your community by sharing an update on what you need or how you can help.
             </Text>
 
-            <View style={onboardingStyles.fieldContainer}>
-                <Text style={[onboardingStyles.label, { paddingTop: 24, marginBottom: 5 }]}>Here's an example:</Text>
+            {/* NEW Resources Section */}
+            <View style={styles.fieldContainer}>
+                <Text style={[typography.title, { marginTop: 24, marginBottom: 16 }]}>Resources</Text>
 
-                {/* Example Postcard Image */}
-                <View style={styles.exampleImageContainer}>
-                    <Image
-                        source={require('../assets/3_kodi.png')}
-                        style={styles.exampleImage}
-                        resizeMode="contain"
-                    />
+                {/* Resources Buttons */}
+                <View style={styles.resourceOptionsContainer}>
+                    {RESOURCES_OPTIONS.map((option) => (
+                        <TouchableOpacity
+                            key={option.id}
+                            style={[
+                                styles.resourceButton,
+                                { backgroundColor: option.bgColor },
+                                selectedResource === option.id && styles.selectedResourceButton
+                            ]}
+                            onPress={() => setSelectedResource(option.id)}
+                        >
+                            <Ionicons name={option.icon} size={24} color={option.color} style={styles.resourceIcon} />
+                            <Text style={[styles.resourceButtonText, { color: option.color }]}>{option.title}</Text>
+                        </TouchableOpacity>
+                    ))}
                 </View>
-
-                <Text style={styles.exampleCaption}>
-                    Create your own postcard to share your emergency status with others
-                </Text>
             </View>
         </Animated.View>
     );
@@ -393,7 +425,7 @@ const SafetyPostcardScreen = ({ navigation }) => {
                         resizeMode="contain"
                     />
                     <Text style={{...typography.bodyMedium, flex: 1}}>
-                        Red badges indicate high priority alerts such as areas of danger and missing people or pets
+                        Red badges indicate high priority alerts such as areas of danger and missing people or pets.
                     </Text>
                 </View>
 
@@ -406,7 +438,7 @@ const SafetyPostcardScreen = ({ navigation }) => {
                         resizeMode="contain"
                     />
                     <Text style={{...typography.bodyMedium, flex: 1}}>
-                        Green badges let friends and family know you're safe
+                        Green badges let friends and family know you're safe.
                     </Text>
                 </View>
 
@@ -419,7 +451,7 @@ const SafetyPostcardScreen = ({ navigation }) => {
                         resizeMode="contain"
                     />
                     <Text style={{...typography.bodyMedium, flex: 1}}>
-                        Purple badges help identify underserved communities
+                        Purple badges help identify underserved communities.
                     </Text>
                 </View>
 
@@ -432,133 +464,65 @@ const SafetyPostcardScreen = ({ navigation }) => {
                         resizeMode="contain"
                     />
                     <Text style={{...typography.bodyMedium, flex: 1}}>
-                        Special Badges are earned when you help out your community
+                        Special Badges are earned when you help out your community.
                     </Text>
                 </View>
             </View>
         </Animated.View>
     );
 
-    // Render step 4: Preview and Share (formerly step 3)
-    const renderPreviewShareStep = () => (
+    // NEW Step 4: Create a Postcard with selectable options
+    const renderCreatePostcardStep = () => (
         <Animated.View
             style={[
                 onboardingStyles.stepContainer,
                 { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
             ]}
         >
-            <Text style={onboardingStyles.headline}>Preview & Share</Text>
-            <Text style={onboardingStyles.bodyLarge}>
-                Review your safety postcard and customize sharing options.
+            <Text style={onboardingStyles.headline}>Create a Postcard</Text>
+            <Text style={{...typography.bodyMedium, marginBottom: 24}}>
+                What kind of update are you sharing?
             </Text>
 
-            <View style={onboardingStyles.switchContainer}>
-                <Text style={onboardingStyles.label}>Include active incidents</Text>
-                <Switch
-                    value={includeIncidents}
-                    onValueChange={setIncludeIncidents}
-                    trackColor={{ false: '#555555', true: '#BFDEFF' }}
-                    thumbColor={includeIncidents ? '#FFFFFF' : '#F4F4F4'}
-                    ios_backgroundColor="#555555"
-                />
+            {/* Postcard Options */}
+            <View style={styles.postcardOptionsContainer}>
+                {POSTCARD_OPTIONS.map((option) => (
+                    <TouchableOpacity
+                        key={option.id}
+                        style={[
+                            styles.postcardOption,
+                            selectedPostcardOption === option.id && {
+                                borderColor: option.color,
+                                borderWidth: 2
+                            }
+                        ]}
+                        onPress={() => {
+                            setSelectedPostcardOption(option.id);
+                            setCustomMessage(option.message);
+                        }}
+                    >
+                        <View style={styles.postcardOptionContent}>
+                            <View style={styles.postcardOptionHeader}>
+                                <View style={[styles.postcardOptionIcon, { backgroundColor: `${option.color}20` }]}>
+                                    <Ionicons name={option.icon} size={24} color={option.color} />
+                                </View>
+                                <Text style={styles.postcardOptionTitle}>{option.title}</Text>
+                            </View>
+                            <Text style={styles.postcardOptionMessage}>{option.message}</Text>
+                        </View>
+                    </TouchableOpacity>
+                ))}
             </View>
 
-            {isVulnerableArea && (
-                <View style={onboardingStyles.switchContainer}>
-                    <Text style={onboardingStyles.label}>Include vulnerable area info</Text>
-                    <Switch
-                        value={includeVulnerableInfo}
-                        onValueChange={setIncludeVulnerableInfo}
-                        trackColor={{ false: '#555555', true: '#BFDEFF' }}
-                        thumbColor={includeVulnerableInfo ? '#FFFFFF' : '#F4F4F4'}
-                        ios_backgroundColor="#555555"
-                    />
-                </View>
-            )}
-
-            <View style={onboardingStyles.switchContainer}>
-                <Text style={onboardingStyles.label}>Include timestamp</Text>
-                <Switch
-                    value={includeTimestamp}
-                    onValueChange={setIncludeTimestamp}
-                    trackColor={{ false: '#555555', true: '#BFDEFF' }}
-                    thumbColor={includeTimestamp ? '#FFFFFF' : '#F4F4F4'}
-                    ios_backgroundColor="#555555"
-                />
-            </View>
-
-            <Text style={onboardingStyles.label}>Postcard Preview:</Text>
-            <View style={styles.postcardContainer}>
-                <View ref={postcardRef} style={styles.postcard}>
-                    <View style={styles.postcardHeader}>
-                        <Text style={styles.postcardTitle}>Emergency Status Update</Text>
-                        {selectedType && (
-                            <View style={styles.selectedTypeContainer}>
-                                <Ionicons
-                                    name={POSTCARD_TYPES.find(t => t.id === selectedType).icon}
-                                    size={24}
-                                    color={POSTCARD_TYPES.find(t => t.id === selectedType).color}
-                                />
-                                <Text style={[
-                                    styles.selectedTypeText,
-                                    { color: POSTCARD_TYPES.find(t => t.id === selectedType).color }
-                                ]}>
-                                    {POSTCARD_TYPES.find(t => t.id === selectedType).title}
-                                </Text>
-                            </View>
-                        )}
-
-                        {/* Display selected badge if any */}
-                        {selectedBadge && (
-                            <View style={styles.selectedBadgeContainer}>
-                                <Ionicons
-                                    name={POSTCARD_TYPES.find(t => t.id === selectedBadge).icon}
-                                    size={20}
-                                    color={POSTCARD_TYPES.find(t => t.id === selectedBadge).color}
-                                />
-                                <Text style={[
-                                    styles.selectedBadgeText,
-                                    { color: POSTCARD_TYPES.find(t => t.id === selectedBadge).color }
-                                ]}>
-                                    {POSTCARD_TYPES.find(t => t.id === selectedBadge).title}
-                                </Text>
-                            </View>
-                        )}
-                    </View>
-
-                    <View style={styles.postcardBody}>
-                        <Text style={styles.postcardMessage}>{customMessage}</Text>
-
-                        {includeIncidents && incidents && incidents.fires && incidents.fires.length > 0 && (
-                            <Text style={styles.activeIncidentsText}>
-                                Active incidents: {incidents.fires.map(fire => fire.title).join(', ')}
-                            </Text>
-                        )}
-
-                        {includeVulnerableInfo && isVulnerableArea && (
-                            <Text style={styles.postcardVulnerableMessage}>{vulnerableMessage}</Text>
-                        )}
-                    </View>
-
-                    <View style={styles.postcardFooter}>
-                        {useCurrentLocation && (
-                            <>
-                                <Ionicons name="location" size={16} color="#666" />
-                                <Text style={styles.locationText}>{locationName}</Text>
-                            </>
-                        )}
-                        {includeTimestamp && (
-                            <Text style={styles.timestampText}>{new Date().toLocaleString()}</Text>
-                        )}
-                    </View>
-
-                    <View style={styles.postcardBranding}>
-                        <Text style={styles.brandingText}>Emergency Incident Map</Text>
-                    </View>
+            {/* Hidden reference for capturing */}
+            <View style={{ position: 'absolute', opacity: 0, width: 1, height: 1, overflow: 'hidden' }}>
+                <View ref={postcardRef} style={{ width: 380, height: 350 }}>
+                    {/* Empty invisible view for reference */}
                 </View>
             </View>
         </Animated.View>
     );
+
 
     if (isLoading) {
         return (
@@ -594,7 +558,7 @@ const SafetyPostcardScreen = ({ navigation }) => {
                             {step === 1 && renderExamplePostcardStep()}
                             {step === 2 && renderLocationMessageStep()}
                             {step === 3 && renderSirenBadgesStep()}
-                            {step === 4 && renderPreviewShareStep()}
+                            {step === 4 && renderCreatePostcardStep()}
 
                             {/* Add extra padding at the bottom to ensure scrolling works well */}
                             <View style={{ height: 80 }} />
@@ -664,6 +628,9 @@ const styles = {
         fontSize: 16,
         color: '#555',
     },
+    fieldContainer: {
+        width: '100%',
+    },
     // Updated styles for images
     exampleImageContainer: {
         alignItems: 'center',
@@ -683,6 +650,31 @@ const styles = {
         marginTop: 8,
         fontStyle: 'italic',
     },
+    // NEW Resource Button Styles
+    resourceOptionsContainer: {
+        flexDirection: 'column',
+        marginBottom: 16,
+        gap: 12,
+    },
+    resourceButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 14,
+        paddingHorizontal: 20,
+        borderRadius: 10,
+        backgroundColor: '#202020',
+    },
+    selectedResourceButton: {
+        borderWidth: 2,
+        borderColor: '#FFFFFF',
+    },
+    resourceIcon: {
+        marginRight: 12,
+    },
+    resourceButtonText: {
+        fontSize: 18,
+        fontWeight: '500',
+    },
     vulnerableBanner: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -699,7 +691,7 @@ const styles = {
         fontSize: 16,
         color: '#FF6F00',
     },
-    // New Badge styles
+    // Badge styles
     badgesContainer: {
         marginTop: 12,
         marginBottom: 16,
@@ -751,6 +743,11 @@ const styles = {
         fontSize: 14,
         fontWeight: 'bold',
         marginLeft: 4,
+    },
+    // Postcard Option Styles
+    sharingOptionsContainer: {
+        marginTop: 16,
+        marginBottom: 24,
     },
     postcardContainer: {
         alignItems: 'center',
@@ -840,6 +837,48 @@ const styles = {
     brandingText: {
         color: 'white',
         fontWeight: 'bold',
+    },
+
+    postcardOptionsContainer: {
+        flexDirection: 'column',
+        marginTop: 0,
+    },
+    postcardOption: {
+        flexDirection: 'column',
+        padding: 12, // Reduced padding to make card smaller
+        borderRadius: 10, // Slightly reduced border radius
+        borderWidth: 1,
+        borderColor: '#E0E0E0',
+        marginBottom: 14, // Reduced margin to make cards closer together
+        backgroundColor: '#202020',
+    },
+    postcardOptionContent: {
+        width: '100%',
+    },
+    postcardOptionHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 6, // Reduced margin
+    },
+    postcardOptionIcon: {
+        width: 34, // Smaller icon
+        height: 34, // Smaller icon
+        borderRadius: 20, // Half the width
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 12, // Reduced margin
+    },
+    postcardOptionTitle: {
+        fontSize: 20, // Slightly smaller font
+        fontWeight: '400',
+        color: '#FFFFFF',
+    },
+    postcardOptionMessage: {
+        fontSize: 12, // Smaller message text
+        fontFamily:'OpenSans',
+        color: '#FFFFFF',
+        marginTop: 0,
+        marginLeft: 0, // Removed left margin so text aligns with card edge
     },
 };
 
