@@ -1,4 +1,4 @@
-// SafetyPostcardScreen.js - Updated animation transitions
+// SafetyPostcardScreen.js - Updated with Personal Info Step
 import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
@@ -20,9 +20,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
-import { captureRef } from 'react-native-view-shot';
-import * as Sharing from 'expo-sharing';
-import * as MediaLibrary from 'expo-media-library';
+import * as ImagePicker from 'expo-image-picker';
 import IncidentService from '../components/IncidentService';
 
 // Import the styles from onboarding - assuming they're in a shared location
@@ -44,6 +42,14 @@ const POSTCARD_OPTIONS = [
     { id: 'support', title: "Offer Support", icon: 'help-buoy-outline', color: '#009688', message: "Let others know you're open to volunteering or providing resources." }
 ];
 
+// New Siren Badges options
+const SIREN_BADGES = [
+    { id: 'language', title: "I struggle with a language barrier", image: require('../assets/language.png'), color: '#3F51B5', bgColor: 'rgba(63,81,181,0.2)' },
+    { id: 'resources', title: "My community lacks resources", image: require('../assets/resources.png'), color: '#FF9800', bgColor: 'rgba(255,152,0,0.2)' },
+    { id: 'disability', title: "I have a disability", image: require('../assets/disability.png'), color: '#2196F3', bgColor: 'rgba(33,150,243,0.2)' },
+    { id: 'danger', title: "My home is a danger zone", image: require('../assets/danger.png'), color: '#F44336', bgColor: 'rgba(244,67,54,0.2)' }
+];
+
 const VULNERABLE_AREA_MESSAGES = [
     "Checking in from a high-risk zone — resources are limited here.",
     "This area often receives less attention during disasters but needs support too.",
@@ -60,7 +66,6 @@ const RESOURCES_OPTIONS = [
 
 const SafetyPostcardScreen = ({ navigation }) => {
     const scrollViewRef = useRef(null);
-    const postcardRef = useRef();
     const [inPostcardFlow, setInPostcardFlow] = useState(false);
     const [step, setStep] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
@@ -69,7 +74,7 @@ const SafetyPostcardScreen = ({ navigation }) => {
     // Animation refs
     const slideAnim = useRef(new Animated.Value(0)).current;
     const fadeAnim = useRef(new Animated.Value(1)).current;
-    const progressAnim = useRef(new Animated.Value(0)).current; // Start at 0, not 1/3
+    const progressAnim = useRef(new Animated.Value(0)).current; // Start at 0
 
     // Step 1: Location and message
     const [selectedType, setSelectedType] = useState('safe');
@@ -86,6 +91,16 @@ const SafetyPostcardScreen = ({ navigation }) => {
 
     // Step 3: Create a Postcard
     const [selectedPostcardOption, setSelectedPostcardOption] = useState(null);
+
+    // Step 4: Siren Badges (NEW STEP)
+    const [selectedSirenBadges, setSelectedSirenBadges] = useState([]);
+
+    // Step 5: Personal Information (moved to step 5)
+    const [userName, setUserName] = useState('');
+    const [shareZipCode, setShareZipCode] = useState(false);
+    const [zipCode, setZipCode] = useState('');
+    const [personalNote, setPersonalNote] = useState('');
+    const [photo, setPhoto] = useState(null);
 
     // Sharing preferences
     const [incidents, setIncidents] = useState(null);
@@ -114,8 +129,8 @@ const SafetyPostcardScreen = ({ navigation }) => {
     // Update progress animation when step or inPostcardFlow changes
     useEffect(() => {
         if (inPostcardFlow) {
-            // Calculate the correct progress value (1/3, 2/3, 3/3)
-            const newProgressValue = step / 3;
+            // Calculate the correct progress value (1/6, 2/6, 3/6, 4/6, 5/6, 6/6) - updated for 6 steps
+            const newProgressValue = step / 6;
 
             // Use timing animation for smooth progress transition
             Animated.timing(progressAnim, {
@@ -194,6 +209,80 @@ const SafetyPostcardScreen = ({ navigation }) => {
         }
     };
 
+    // Function to toggle a Siren Badge selection
+    const toggleSirenBadge = (badgeId) => {
+        setSelectedSirenBadges(prevSelected => {
+            if (prevSelected.includes(badgeId)) {
+                return prevSelected.filter(id => id !== badgeId);
+            } else {
+                return [...prevSelected, badgeId];
+            }
+        });
+    };
+
+    // Function to pick an image from the device gallery
+    const pickImage = async () => {
+        try {
+            // Request permission to access media library
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+            if (status !== 'granted') {
+                Alert.alert(
+                    'Permission Required',
+                    'Please allow access to your photo library to add a photo.',
+                    [{ text: 'OK' }]
+                );
+                return;
+            }
+
+            // Launch the image picker
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: true,
+                aspect: [4, 3],
+                quality: 0.8,
+            });
+
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+                setPhoto(result.assets[0].uri);
+            }
+        } catch (error) {
+            console.error('Error picking image:', error);
+            Alert.alert('Error', 'Failed to select photo. Please try again.');
+        }
+    };
+
+    // Function to take a photo with the camera
+    const takePhoto = async () => {
+        try {
+            // Request camera permissions
+            const { status } = await ImagePicker.requestCameraPermissionsAsync();
+
+            if (status !== 'granted') {
+                Alert.alert(
+                    'Camera Permission Required',
+                    'Please allow camera access to take a photo.',
+                    [{ text: 'OK' }]
+                );
+                return;
+            }
+
+            // Launch the camera
+            const result = await ImagePicker.launchCameraAsync({
+                allowsEditing: true,
+                aspect: [4, 3],
+                quality: 0.8,
+            });
+
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+                setPhoto(result.assets[0].uri);
+            }
+        } catch (error) {
+            console.error('Error taking photo:', error);
+            Alert.alert('Error', 'Failed to take photo. Please try again.');
+        }
+    };
+
     // Improved animation transition function
     const animateTransition = (nextStep) => {
         // Fade out current content
@@ -246,7 +335,43 @@ const SafetyPostcardScreen = ({ navigation }) => {
         }, 50);
     };
 
+    // Simplified sharePostcard function that doesn't use react-native-view-shot
+    const simpleSharePostcard = () => {
+        setIsProcessing(true);
+
+        try {
+            // Create a simple text message to share
+            const message =
+                `Siren Relief Postcard from ${userName}\n\n` +
+                `${personalNote || customMessage}\n\n` +
+                (locationName ? `Location: ${locationName}\n` : '') +
+                (shareZipCode && zipCode ? `ZIP: ${zipCode}\n` : '') +
+                `Created with Siren Relief App`;
+
+            // Use the basic Share API
+            Share.share({
+                message: message,
+                title: 'Siren Relief Postcard'
+            }).then(result => {
+                if (result.action === Share.sharedAction) {
+                    // Show success message
+                    Alert.alert(
+                        'Postcard Shared',
+                        'Your safety postcard has been shared successfully!',
+                        [{ text: 'OK', onPress: () => navigation.navigate('Map') }]
+                    );
+                }
+            });
+        } catch (error) {
+            console.error('Error sharing postcard:', error);
+            Alert.alert('Sharing Error', 'Unable to share your safety postcard. Please try again.');
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
     const goToNextStep = () => {
+        // Validate input based on current step
         if (step === 1 && !customMessage) {
             Alert.alert('Message Required', 'Please enter a message for your postcard');
             return;
@@ -257,11 +382,18 @@ const SafetyPostcardScreen = ({ navigation }) => {
             return;
         }
 
-        if (step < 3) {
+        if (step === 5 && !userName) {
+            Alert.alert('Name Required', 'Please enter your name for the postcard');
+            return;
+        }
+
+        // If we're at step 5, proceed to the postcard display step (6)
+        // instead of immediately sharing
+        if (step < 6) {
             animateTransition(step + 1);
         } else {
-            // Complete the process and share the postcard
-            sharePostcard();
+            // Only when we're at step 6, we actually share the postcard
+            simpleSharePostcard();
         }
 
         // Scroll to top after step change
@@ -281,47 +413,6 @@ const SafetyPostcardScreen = ({ navigation }) => {
             setTimeout(() => {
                 setInPostcardFlow(false);
             }, 200);
-        }
-    };
-
-    // Generate the postcard image and share it
-    const sharePostcard = async () => {
-        setIsProcessing(true);
-
-        try {
-            // Capture the postcard view as an image
-            const uri = await captureRef(postcardRef, {
-                format: 'png',
-                quality: 0.8,
-            });
-
-            // Save to media library for sharing
-            await MediaLibrary.requestPermissionsAsync();
-            await MediaLibrary.saveToLibraryAsync(uri);
-
-            // Share the image
-            if (Platform.OS === 'ios') {
-                // iOS sharing
-                await Sharing.shareAsync(uri);
-            } else {
-                // Android sharing
-                await Share.share({
-                    message: customMessage,
-                    url: uri
-                });
-            }
-
-            // Show success message
-            Alert.alert(
-                'Postcard Shared',
-                'Your safety postcard has been shared successfully!',
-                [{ text: 'OK', onPress: () => navigation.navigate('Map') }]
-            );
-        } catch (error) {
-            console.error('Error sharing postcard:', error);
-            Alert.alert('Sharing Error', 'Unable to share your safety postcard. Please try again.');
-        } finally {
-            setIsProcessing(false);
         }
     };
 
@@ -356,203 +447,467 @@ const SafetyPostcardScreen = ({ navigation }) => {
                         }
                     ]}
                 >
-                    Step {step} of 3
+                    {`Step ${step} of 6`} {/* Updated to use template literal for 6 steps */}
                 </Text>
             </View>
         );
     };
 
     // Render landing page (not part of step flow)
-    const renderLandingPage = () => (
-        <Animated.View
-            style={[
-                onboardingStyles.stepContainer,
-                { opacity: fadeAnim, transform: [{ translateY: slideAnim }] } // Removed paddingTop: 30
-            ]}
-        >
-            <Text style={onboardingStyles.headline}>Siren Relief</Text>
-            <Text style={{...typography.title, marginBottom:16}}>Postcards</Text>
-            <Text style={{...typography.bodyMedium, marginBottom:16}}>
-                Support your community by sharing an update on what you need or how you can help.
-            </Text>
-
-            {/* Create a Postcard button */}
-            <TouchableOpacity
-                style={[onboardingStyles.continueButton, styles.createPostcardButton]}
-                onPress={startPostcardFlow}
+    const renderLandingPage = () => {
+        return (
+            <Animated.View
+                style={[
+                    onboardingStyles.stepContainer,
+                    { opacity: fadeAnim, transform: [{ translateY: slideAnim }] } // Removed paddingTop: 30
+                ]}
             >
-                <Text style={onboardingStyles.continueButtonText}>
-                    Create a Postcard
+                <Text style={onboardingStyles.headline}>Siren Relief</Text>
+                <Text style={{...typography.title, marginBottom:16}}>Postcards</Text>
+                <Text style={{...typography.bodyMedium, marginBottom:16}}>
+                    Support your community by sharing an update on what you need or how you can help.
                 </Text>
-            </TouchableOpacity>
 
-            {/* Resources Section */}
-            <View style={styles.fieldContainer}>
-                <Text style={[typography.title, { marginTop: 24, marginBottom: 16 }]}>Resources</Text>
+                {/* Create a Postcard button */}
+                <TouchableOpacity
+                    style={[onboardingStyles.continueButton, styles.createPostcardButton]}
+                    onPress={startPostcardFlow}
+                >
+                    <Text style={onboardingStyles.continueButtonText}>
+                        Create a Postcard
+                    </Text>
+                </TouchableOpacity>
 
-                {/* Resources Buttons */}
-                <View style={styles.resourceOptionsContainer}>
-                    {RESOURCES_OPTIONS.map((option) => (
+                {/* Resources Section */}
+                <View style={styles.fieldContainer}>
+                    <Text style={[typography.title, { marginTop: 24, marginBottom: 16 }]}>Resources</Text>
+
+                    {/* Resources Buttons */}
+                    <View style={styles.resourceOptionsContainer}>
+                        {RESOURCES_OPTIONS.map((option) => (
+                            <TouchableOpacity
+                                key={option.id}
+                                style={[
+                                    styles.resourceButton,
+                                    { backgroundColor: option.bgColor },
+                                    selectedResource === option.id && styles.selectedResourceButton
+                                ]}
+                                onPress={() => setSelectedResource(option.id)}
+                            >
+                                <Ionicons name={option.icon} size={24} color={option.color} style={styles.resourceIcon} />
+                                <Text style={[styles.resourceButtonText, { color: option.color }]}>{option.title}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </View>
+            </Animated.View>
+        );
+    };
+
+    // Render step 1: Location and message with centered image
+    const renderLocationMessageStep = () => {
+        return (
+            <Animated.View
+                style={[
+                    onboardingStyles.stepContainer,
+                    { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+                ]}
+            >
+                {/* Image centered in the middle of the screen */}
+                <View style={styles.exampleImageContainer}>
+                    <Image
+                        source={require('../assets/example_postcard.png')}
+                        style={styles.exampleImage}
+                        resizeMode="contain"
+                    />
+                </View>
+
+                {/* Headline and body text below the image */}
+                <Text style={{...onboardingStyles.headline, paddingTop:16, marginBottom: 8}}>
+                    Postcards
+                </Text>
+                <Text style={{...typography.bodyMedium, marginBottom: 24}}>
+                    Siren will generate a shareable postcard based on your specific situation, whether you're seeking assistance or offering support.
+                </Text>
+            </Animated.View>
+        );
+    };
+
+    // Step 2: Siren Badges
+    const renderSirenBadgesStep = () => {
+        return (
+            <Animated.View
+                style={[
+                    onboardingStyles.stepContainer,
+                    { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+                ]}
+            >
+                <Text style={onboardingStyles.headline}>Siren Badges</Text>
+
+                {/* Example badges selection */}
+                <View style={styles.badgesContainer}>
+                    <View style={styles.badgeRow}>
+                        <Image
+                            source={require('../assets/red_badge.png')}
+                            style={styles.badgeIcon}
+                            resizeMode="contain"
+                        />
+                        <Text style={{...typography.bodyMedium, flex: 1}}>
+                            Red badges indicate high priority alerts such as areas of danger and missing people or pets.
+                        </Text>
+                    </View>
+
+                    <View style={styles.separatorLine} />
+
+                    <View style={styles.badgeRow}>
+                        <Image
+                            source={require('../assets/green_badge.png')}
+                            style={styles.badgeIcon}
+                            resizeMode="contain"
+                        />
+                        <Text style={{...typography.bodyMedium, flex: 1}}>
+                            Green badges let friends and family know you're safe.
+                        </Text>
+                    </View>
+
+                    <View style={styles.separatorLine} />
+
+                    <View style={styles.badgeRow}>
+                        <Image
+                            source={require('../assets/purple_badge.png')}
+                            style={styles.badgeIcon}
+                            resizeMode="contain"
+                        />
+                        <Text style={{...typography.bodyMedium, flex: 1}}>
+                            Purple badges help identify underserved communities.
+                        </Text>
+                    </View>
+
+                    <View style={styles.separatorLine} />
+
+                    <View style={styles.badgeRow}>
+                        <Image
+                            source={require('../assets/yellow_badge.png')}
+                            style={styles.badgeIcon}
+                            resizeMode="contain"
+                        />
+                        <Text style={{...typography.bodyMedium, flex: 1}}>
+                            Special Badges are earned when you help out your community.
+                        </Text>
+                    </View>
+                </View>
+            </Animated.View>
+        );
+    };
+
+    // Step 3: Create a Postcard with selectable options
+    const renderCreatePostcardStep = () => {
+        return (
+            <Animated.View
+                style={[
+                    onboardingStyles.stepContainer,
+                    { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+                ]}
+            >
+                <Text style={onboardingStyles.headline}>Create a Postcard</Text>
+                <Text style={{...typography.bodyMedium, marginBottom: 24}}>
+                    What kind of update are you sharing?
+                </Text>
+
+                {/* Postcard Options */}
+                <View style={styles.postcardOptionsContainer}>
+                    {POSTCARD_OPTIONS.map((option) => (
                         <TouchableOpacity
                             key={option.id}
                             style={[
-                                styles.resourceButton,
-                                { backgroundColor: option.bgColor },
-                                selectedResource === option.id && styles.selectedResourceButton
+                                styles.postcardOption,
+                                selectedPostcardOption === option.id && {
+                                    borderColor: option.color,
+                                    borderWidth: 2
+                                }
                             ]}
-                            onPress={() => setSelectedResource(option.id)}
+                            onPress={() => {
+                                setSelectedPostcardOption(option.id);
+                                setCustomMessage(option.message);
+                            }}
                         >
-                            <Ionicons name={option.icon} size={24} color={option.color} style={styles.resourceIcon} />
-                            <Text style={[styles.resourceButtonText, { color: option.color }]}>{option.title}</Text>
+                            <View style={styles.postcardOptionContent}>
+                                <View style={styles.postcardOptionHeader}>
+                                    <View style={[styles.postcardOptionIcon, { backgroundColor: `${option.color}20` }]}>
+                                        <Ionicons name={option.icon} size={24} color={option.color} />
+                                    </View>
+                                    <Text style={styles.postcardOptionTitle}>{option.title}</Text>
+                                </View>
+                                <Text style={styles.postcardOptionMessage}>{option.message}</Text>
+                            </View>
                         </TouchableOpacity>
                     ))}
                 </View>
-            </View>
-        </Animated.View>
-    );
+            </Animated.View>
+        );
+    };
 
-    // Render step 1: Location and message with centered image
-    const renderLocationMessageStep = () => (
-        <Animated.View
-            style={[
-                onboardingStyles.stepContainer,
-                { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
-            ]}
-        >
-            {/* Image centered in the middle of the screen */}
-            <View style={styles.exampleImageContainer}>
-                <Image
-                    source={require('../assets/example_postcard.png')}
-                    style={styles.exampleImage}
-                    resizeMode="contain"
-                />
-            </View>
+    // Step 4: Select Siren Badges (NEW STEP)
+    const renderSelectSirenBadgesStep = () => {
+        return (
+            <Animated.View
+                style={[
+                    onboardingStyles.stepContainer,
+                    { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+                ]}
+            >
+                <Text style={onboardingStyles.headline}>Create a Postcard</Text>
+                <Text style={{...typography.bodyMedium, marginBottom: 24}}>
+                    Select your Siren Badges
+                </Text>
 
-            {/* Headline and body text below the image */}
-            <Text style={{...onboardingStyles.headline, paddingTop:16, marginBottom: 8}}>
-                Postcards
-            </Text>
-            <Text style={{...typography.bodyMedium, marginBottom: 24}}>
-                Siren will generate a shareable postcard based on your specific situation, whether you're seeking assistance or offering support.</Text>
-        </Animated.View>
-    );
-
-    // Step 2: Siren Badges
-    const renderSirenBadgesStep = () => (
-        <Animated.View
-            style={[
-                onboardingStyles.stepContainer,
-                { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
-            ]}
-        >
-            <Text style={onboardingStyles.headline}>Siren Badges</Text>
-
-            {/* Example badges selection */}
-            <View style={styles.badgesContainer}>
-                <View style={styles.badgeRow}>
-                    <Image
-                        source={require('../assets/red_badge.png')}
-                        style={styles.badgeIcon}
-                        resizeMode="contain"
-                    />
-                    <Text style={{...typography.bodyMedium, flex: 1}}>
-                        Red badges indicate high priority alerts such as areas of danger and missing people or pets.
-                    </Text>
-                </View>
-
-                <View style={styles.separatorLine} />
-
-                <View style={styles.badgeRow}>
-                    <Image
-                        source={require('../assets/green_badge.png')}
-                        style={styles.badgeIcon}
-                        resizeMode="contain"
-                    />
-                    <Text style={{...typography.bodyMedium, flex: 1}}>
-                        Green badges let friends and family know you're safe.
-                    </Text>
-                </View>
-
-                <View style={styles.separatorLine} />
-
-                <View style={styles.badgeRow}>
-                    <Image
-                        source={require('../assets/purple_badge.png')}
-                        style={styles.badgeIcon}
-                        resizeMode="contain"
-                    />
-                    <Text style={{...typography.bodyMedium, flex: 1}}>
-                        Purple badges help identify underserved communities.
-                    </Text>
-                </View>
-
-                <View style={styles.separatorLine} />
-
-                <View style={styles.badgeRow}>
-                    <Image
-                        source={require('../assets/yellow_badge.png')}
-                        style={styles.badgeIcon}
-                        resizeMode="contain"
-                    />
-                    <Text style={{...typography.bodyMedium, flex: 1}}>
-                        Special Badges are earned when you help out your community.
-                    </Text>
-                </View>
-            </View>
-        </Animated.View>
-    );
-
-    // Step 3: Create a Postcard with selectable options
-    const renderCreatePostcardStep = () => (
-        <Animated.View
-            style={[
-                onboardingStyles.stepContainer,
-                { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
-            ]}
-        >
-            <Text style={onboardingStyles.headline}>Create a Postcard</Text>
-            <Text style={{...typography.bodyMedium, marginBottom: 24}}>
-                What kind of update are you sharing?
-            </Text>
-
-            {/* Postcard Options */}
-            <View style={styles.postcardOptionsContainer}>
-                {POSTCARD_OPTIONS.map((option) => (
-                    <TouchableOpacity
-                        key={option.id}
-                        style={[
-                            styles.postcardOption,
-                            selectedPostcardOption === option.id && {
-                                borderColor: option.color,
-                                borderWidth: 2
-                            }
-                        ]}
-                        onPress={() => {
-                            setSelectedPostcardOption(option.id);
-                            setCustomMessage(option.message);
-                        }}
-                    >
-                        <View style={styles.postcardOptionContent}>
-                            <View style={styles.postcardOptionHeader}>
-                                <View style={[styles.postcardOptionIcon, { backgroundColor: `${option.color}20` }]}>
-                                    <Ionicons name={option.icon} size={24} color={option.color} />
+                {/* Siren Badges Options */}
+                <View style={styles.sirenBadgesContainer}>
+                    {SIREN_BADGES.map((badge) => (
+                        <TouchableOpacity
+                            key={badge.id}
+                            style={[
+                                styles.sirenBadgeOption,
+                                selectedSirenBadges.includes(badge.id) && {
+                                    borderColor: badge.color,
+                                    borderWidth: 2
+                                }
+                            ]}
+                            onPress={() => toggleSirenBadge(badge.id)}
+                        >
+                            <View style={styles.sirenBadgeContent}>
+                                <View style={[styles.sirenBadgeIcon, { backgroundColor: badge.bgColor }]}>
+                                    <Image
+                                        source={badge.image}
+                                        style={styles.badgeImage}
+                                        resizeMode="contain"
+                                    />
                                 </View>
-                                <Text style={styles.postcardOptionTitle}>{option.title}</Text>
+                                <Text style={styles.sirenBadgeTitle}>{badge.title}</Text>
                             </View>
-                            <Text style={styles.postcardOptionMessage}>{option.message}</Text>
-                        </View>
-                    </TouchableOpacity>
-                ))}
-            </View>
-
-            {/* Hidden reference for capturing */}
-            <View style={{ position: 'absolute', opacity: 0, width: 1, height: 1, overflow: 'hidden' }}>
-                <View ref={postcardRef} style={{ width: 380, height: 350 }}>
-                    {/* Empty invisible view for reference */}
+                        </TouchableOpacity>
+                    ))}
                 </View>
-            </View>
-        </Animated.View>
-    );
+
+                {/* Selected badges count */}
+                <Text style={styles.selectedBadgesText}>
+                    {`${selectedSirenBadges.length} ${selectedSirenBadges.length === 1 ? 'badge' : 'badges'} selected`}
+                </Text>
+            </Animated.View>
+        );
+    };
+
+
+    // Step 5: Personal Information (moved to step 5)
+    const renderPersonalInfoStep = () => {
+        return (
+            <Animated.View
+                style={[
+                    onboardingStyles.stepContainer,
+                    { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+                ]}
+            >
+                <Text style={onboardingStyles.headline}>Create a Postcard</Text>
+                <Text style={{...typography.bodyMedium, marginBottom: 24}}>
+                    Let us know about your situation.
+                </Text>
+
+                {/* Name Input */}
+                <View style={styles.fieldContainer}>
+                    <Text style={styles.fieldLabel}>Your Name</Text>
+                    <TextInput
+                        style={[styles.textInput, { backgroundColor: 'white', color: '#333333' }]}
+                        placeholder="Enter your name"
+                        placeholderTextColor="#999999"
+                        value={userName}
+                        onChangeText={setUserName}
+                    />
+                </View>
+
+                {/* Zip Code Option */}
+                <View style={styles.switchContainer}>
+                    <Text style={styles.switchLabel}>Share your ZIP code?</Text>
+                    <Switch
+                        value={shareZipCode}
+                        onValueChange={setShareZipCode}
+                        trackColor={{ false: '#767577', true: '#4CAF50' }}
+                        thumbColor={shareZipCode ? '#fff' : '#f4f3f4'}
+                    />
+                </View>
+
+                {/* Zip Code Input (conditional) */}
+                {shareZipCode && (
+                    <View style={styles.fieldContainer}>
+                        <TextInput
+                            style={[styles.textInput, { backgroundColor: 'white', color: '#333333' }]}
+                            placeholder="Enter ZIP code"
+                            placeholderTextColor="#999999"
+                            value={zipCode}
+                            onChangeText={setZipCode}
+                            keyboardType="numeric"
+                            maxLength={10}
+                        />
+                    </View>
+                )}
+
+                {/* Personal Note */}
+                <View style={styles.fieldContainer}>
+                    <Text style={styles.fieldLabel}>Personal Note</Text>
+                    <TextInput
+                        style={[styles.textInput, styles.textArea, { backgroundColor: 'white', color: '#333333' }]}
+                        placeholder="Add a personal note to your postcard..."
+                        placeholderTextColor="#999999"
+                        value={personalNote}
+                        onChangeText={setPersonalNote}
+                        multiline
+                        numberOfLines={4}
+                    />
+                </View>
+
+                {/* Photo Upload */}
+                <View style={styles.fieldContainer}>
+                    <Text style={styles.fieldLabel}>Add a Photo (Optional)</Text>
+
+                    {/* Photo action buttons */}
+                    <View style={styles.photoActions}>
+                        <TouchableOpacity
+                            style={[styles.photoButton, { flex: 1, marginRight: 8 }]}
+                            onPress={pickImage}
+                        >
+                            <Ionicons name="images-outline" size={22} color="#fff" />
+                            <Text style={styles.photoButtonText}>
+                                Gallery
+                            </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                            style={[styles.photoButton, { flex: 1, marginLeft: 8 }]}
+                            onPress={takePhoto}
+                        >
+                            <Ionicons name="camera-outline" size={22} color="#fff" />
+                            <Text style={styles.photoButtonText}>
+                                Camera
+                            </Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {photo && (
+                        <View style={styles.photoPreviewContainer}>
+                            <Image source={{ uri: photo }} style={styles.photoPreview} />
+                            <TouchableOpacity
+                                style={styles.removePhotoButton}
+                                onPress={() => setPhoto(null)}
+                            >
+                                <Ionicons name="close-circle" size={24} color="#F44336" />
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                </View>
+
+                {/* Removed the hidden reference for capturing as we're no longer using react-native-view-shot */}
+            </Animated.View>
+        );
+    };
+
+    // Step 6: Generated Postcard Display (NEW STEP)
+    const renderGeneratedPostcardStep = () => {
+        return (
+            <Animated.View
+                style={[
+                    onboardingStyles.stepContainer,
+                    { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+                ]}
+            >
+                {/* Display user's name as headline */}
+                <Text style={onboardingStyles.headline}>{userName}</Text>
+
+                {/* The Generated Postcard */}
+                <View style={styles.generatedPostcardContainer}>
+                    <View style={styles.generatedPostcard}>
+                        {/* Postcard Header */}
+                        <View style={styles.generatedPostcardHeader}>
+                            <Text style={styles.generatedPostcardTitle}>Siren Postcard</Text>
+                        </View>
+
+                        {/* Postcard Image (if provided) */}
+                        {photo && (
+                            <Image
+                                source={{ uri: photo }}
+                                style={styles.generatedPostcardImage}
+                                resizeMode="cover"
+                            />
+                        )}
+
+                        {/* Postcard Content */}
+                        <View style={styles.generatedPostcardContent}>
+                            {/* Personal message */}
+                            <Text style={styles.generatedPostcardMessage}>
+                                {personalNote || customMessage}
+                            </Text>
+
+                            {/* Display selected Siren Badges */}
+                            {selectedSirenBadges.length > 0 && (
+                                <View style={styles.generatedBadgesContainer}>
+                                    <Text style={styles.generatedBadgesTitle}>My Situation:</Text>
+                                    <View style={styles.generatedBadgesList}>
+                                        {selectedSirenBadges.map(badgeId => {
+                                            const badge = SIREN_BADGES.find(b => b.id === badgeId);
+                                            return (
+                                                <View key={badgeId} style={[styles.generatedBadge, { backgroundColor: badge.bgColor }]}>
+                                                    <Image
+                                                        source={badge.image}
+                                                        style={styles.generatedBadgeIcon}
+                                                        resizeMode="contain"
+                                                    />
+                                                    <Text style={[styles.generatedBadgeText, { color: badge.color }]}>
+                                                        {badge.title}
+                                                    </Text>
+                                                </View>
+                                            );
+                                        })}
+                                    </View>
+                                </View>
+                            )}
+
+                            {/* Location info if available */}
+                            {locationName && (
+                                <View style={styles.generatedLocationContainer}>
+                                    <Ionicons name="location" size={16} color="#666666" />
+                                    <Text style={styles.generatedLocationText}>{locationName}</Text>
+                                </View>
+                            )}
+
+                            {/* Display ZIP code if shared */}
+                            {shareZipCode && zipCode && (
+                                <Text style={styles.generatedZipText}>ZIP: {zipCode}</Text>
+                            )}
+
+                            {/* Timestamp */}
+                            <Text style={styles.generatedTimestampText}>
+                                {new Date().toLocaleDateString()} • {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                            </Text>
+                        </View>
+
+                        {/* Postcard Footer */}
+                        <View style={styles.generatedPostcardFooter}>
+                            <Text style={styles.generatedFooterText}>
+                                Created with Siren Relief
+                            </Text>
+                        </View>
+                    </View>
+
+                    {/* Share Button */}
+                    <TouchableOpacity
+                        style={styles.shareButton}
+                        onPress={simpleSharePostcard}
+                    >
+                        <Ionicons name="share-outline" size={20} color="#FFFFFF" />
+                        <Text style={styles.shareButtonText}>Share Postcard</Text>
+                    </TouchableOpacity>
+                </View>
+            </Animated.View>
+        );
+    };
 
     if (isLoading) {
         return (
@@ -585,13 +940,18 @@ const SafetyPostcardScreen = ({ navigation }) => {
                             contentContainerStyle={onboardingStyles.scrollViewContent}
                             keyboardShouldPersistTaps="handled"
                         >
-                            {step === 0 && renderLandingPage()}
-                            {step === 1 && renderLocationMessageStep()}
-                            {step === 2 && renderSirenBadgesStep()}
-                            {step === 3 && renderCreatePostcardStep()}
+                            <View>
+                                {step === 0 ? renderLandingPage() : null}
+                                {step === 1 ? renderLocationMessageStep() : null}
+                                {step === 2 ? renderSirenBadgesStep() : null}
+                                {step === 3 ? renderCreatePostcardStep() : null}
+                                {step === 4 ? renderSelectSirenBadgesStep() : null}
+                                {step === 5 ? renderPersonalInfoStep() : null}
+                                {step === 6 ? renderGeneratedPostcardStep() : null}
 
-                            {/* Add extra padding at the bottom to ensure scrolling works well */}
-                            <View style={{ height: 80 }} />
+                                {/* Add extra padding at the bottom to ensure scrolling works well */}
+                                <View style={{ height: 80 }} />
+                            </View>
                         </ScrollView>
                     </View>
                 </View>
@@ -634,11 +994,11 @@ const SafetyPostcardScreen = ({ navigation }) => {
                         onPress={goToNextStep}
                         disabled={isProcessing}
                     >
-                        {isProcessing && step === 3 ? (
+                        {isProcessing && step === 6 ? (
                             <ActivityIndicator size="small" color="#fff" />
                         ) : (
                             <Text style={onboardingStyles.continueButtonText}>
-                                {step < 3 ? 'Continue' : 'Share Postcard'}
+                                {step < 6 ? 'Continue' : 'Share Postcard'}
                             </Text>
                         )}
                     </TouchableOpacity>
@@ -648,8 +1008,12 @@ const SafetyPostcardScreen = ({ navigation }) => {
     );
 };
 
-// Styles remain the same
+// Extended styles with new elements for Siren Badges step
 const styles = {
+    badgeImage: {
+        width: 40,
+        height: 40,
+    },
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -662,6 +1026,74 @@ const styles = {
     },
     fieldContainer: {
         width: '100%',
+        marginBottom: 16,
+    },
+    fieldLabel: {
+        fontSize: 16,
+        fontWeight: '500',
+        color: '#FFFFFF',
+        marginBottom: 8,
+    },
+    textInput: {
+        backgroundColor: 'white',
+        borderWidth: 1,
+        borderColor: '#444',
+        borderRadius: 8,
+        padding: 14,
+        fontSize: 16,
+        color: '#333333',
+    },
+    textArea: {
+        minHeight: 100,
+        textAlignVertical: 'top',
+    },
+    switchContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        width: '100%',
+        marginBottom: 16,
+    },
+    switchLabel: {
+        fontSize: 16,
+        fontWeight: '500',
+        color: '#FFFFFF',
+    },
+    photoActions: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 16,
+    },
+    photoButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#007AFF',
+        borderRadius: 8,
+        padding: 12,
+    },
+    photoButtonText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: '500',
+        marginLeft: 8,
+    },
+    photoPreviewContainer: {
+        marginTop: 16,
+        position: 'relative',
+        alignItems: 'center',
+    },
+    photoPreview: {
+        width: '100%',
+        height: 200,
+        borderRadius: 8,
+    },
+    removePhotoButton: {
+        position: 'absolute',
+        top: 8,
+        right: 8,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        borderRadius: 16,
     },
     createPostcardButton: {
         marginTop: 16,
@@ -777,6 +1209,46 @@ const styles = {
         fontSize: 14,
         fontWeight: 'bold',
         marginLeft: 4,
+    },
+    // Siren Badges styles
+    sirenBadgesContainer: {
+        flexDirection: 'column',
+        marginTop: 0,
+        gap: 12,
+    },
+    sirenBadgeOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 16,
+        paddingHorizontal: 16,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: '#E0E0E0',
+        backgroundColor: '#202020',
+    },
+    sirenBadgeContent: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        width: '100%',
+    },
+    sirenBadgeIcon: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 16,
+    },
+    sirenBadgeTitle: {
+        fontSize: 16,
+        fontWeight: '500',
+        color: '#FFFFFF',
+    },
+    selectedBadgesText: {
+        fontSize: 14,
+        color: '#BBBBBB',
+        marginTop: 16,
+        textAlign: 'center',
     },
     sharingOptionsContainer: {
         marginTop: 16,
@@ -911,6 +1383,131 @@ const styles = {
         color: '#FFFFFF',
         marginTop: 0,
         marginLeft: 0,
+    },
+    // Generated Postcard styles
+    generatedPostcardContainer: {
+        alignItems: 'center',
+        width: '100%',
+        marginVertical: 20,
+    },
+    generatedPostcard: {
+        width: '100%',
+        borderRadius: 16,
+        backgroundColor: 'white',
+        overflow: 'hidden',
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        elevation: 5,
+    },
+    generatedPostcardHeader: {
+        padding: 16,
+        backgroundColor: '#FFFFFF',
+    },
+    generatedPostcardTitle: {
+        fontSize: 22,
+        fontWeight: 'bold',
+        color: '#044F00',
+    },
+    generatedPostcardImage: {
+        width: '100%',
+        height: 324,
+        borderRadius: 8, // Adds curved corners (8px radius)
+        // margin: 16,      // Adds 16px margin on all sides
+        // OR
+        padding: 16,     // Adds 16px padding on all sides
+    },
+    generatedPostcardContent: {
+        padding: 20,
+        backgroundColor: 'white',
+    },
+    generatedPostcardMessage: {
+        fontSize: 16,
+        lineHeight: 22,
+        color: '#333333',
+        marginBottom: 16,
+    },
+    generatedBadgesContainer: {
+        marginTop: 8,
+        marginBottom: 16,
+    },
+    generatedBadgesTitle: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        color: '#555555',
+        marginBottom: 8,
+    },
+    generatedBadgesList: {
+        flexDirection: 'column',
+        gap: 8,
+    },
+    generatedBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+    },
+    generatedBadgeIcon: {
+        width: 24,
+        height: 24,
+        marginRight: 8,
+    },
+    generatedBadgeText: {
+        fontSize: 14,
+        fontWeight: '500',
+    },
+    generatedLocationContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 12,
+        marginBottom: 4,
+    },
+    generatedLocationText: {
+        fontSize: 14,
+        color: '#666666',
+        marginLeft: 4,
+    },
+    generatedZipText: {
+        fontSize: 14,
+        color: '#666666',
+        marginTop: 4,
+    },
+    generatedTimestampText: {
+        fontSize: 12,
+        color: '#999999',
+        marginTop: 12,
+    },
+    generatedPostcardFooter: {
+        padding: 12,
+        backgroundColor: '#3F51B5',
+        alignItems: 'center',
+    },
+    generatedFooterText: {
+        fontSize: 14,
+        fontWeight: '500',
+        color: 'white',
+    },
+    shareButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#4CAF50',
+        borderRadius: 8,
+        paddingVertical: 12,
+        paddingHorizontal: 24,
+        marginTop: 20,
+        width: '100%',
+    },
+    shareButtonText: {
+        color: 'white',
+        fontSize: 16,
+        fontWeight: '500',
+        marginLeft: 8,
     },
 };
 
