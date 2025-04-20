@@ -827,6 +827,10 @@ const SafetyPostcardScreen = ({ navigation }) => {
                         {/* Postcard Header */}
                         <View style={styles.generatedPostcardHeader}>
                             <Text style={styles.generatedPostcardTitle}>Siren Postcard</Text>
+                            {/* Moved Timestamp here, right below the title */}
+                            <Text style={styles.generatedTimestampText}>
+                                {new Date().toLocaleDateString()} • {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                            </Text>
                         </View>
 
                         {/* Postcard Image (if provided) */}
@@ -840,34 +844,32 @@ const SafetyPostcardScreen = ({ navigation }) => {
 
                         {/* Postcard Content */}
                         <View style={styles.generatedPostcardContent}>
-                            {/* Personal message */}
-                            <Text style={styles.generatedPostcardMessage}>
-                                {personalNote || customMessage}
-                            </Text>
+                            {/* Display name and badges on one line */}
+                            <View style={styles.nameAndBadgesContainer}>
+                                <Text style={[typography.title, { color: '#000000' }]}>{userName}</Text>
 
-                            {/* Display selected Siren Badges */}
-                            {selectedSirenBadges.length > 0 && (
-                                <View style={styles.generatedBadgesContainer}>
-                                    <Text style={styles.generatedBadgesTitle}>My Situation:</Text>
-                                    <View style={styles.generatedBadgesList}>
+                                {/* Display selected Siren Badges inline */}
+                                {selectedSirenBadges.length > 0 && (
+                                    <View style={styles.inlineBadgesContainer}>
                                         {selectedSirenBadges.map(badgeId => {
                                             const badge = SIREN_BADGES.find(b => b.id === badgeId);
                                             return (
-                                                <View key={badgeId} style={[styles.generatedBadge, { backgroundColor: badge.bgColor }]}>
-                                                    <Image
-                                                        source={badge.image}
-                                                        style={styles.generatedBadgeIcon}
-                                                        resizeMode="contain"
-                                                    />
-                                                    <Text style={[styles.generatedBadgeText, { color: badge.color }]}>
-                                                        {badge.title}
-                                                    </Text>
-                                                </View>
+                                                <Image
+                                                    key={badgeId}
+                                                    source={badge.image}
+                                                    style={styles.inlineBadgeIcon}
+                                                    resizeMode="contain"
+                                                />
                                             );
                                         })}
                                     </View>
-                                </View>
-                            )}
+                                )}
+                            </View>
+
+                            {/* Personal message */}
+                            <Text style={[typography.bodyMedium, { color: '#000000' }]}>
+                                {personalNote || customMessage}
+                            </Text>
 
                             {/* Location info if available */}
                             {locationName && (
@@ -876,23 +878,6 @@ const SafetyPostcardScreen = ({ navigation }) => {
                                     <Text style={styles.generatedLocationText}>{locationName}</Text>
                                 </View>
                             )}
-
-                            {/* Display ZIP code if shared */}
-                            {shareZipCode && zipCode && (
-                                <Text style={styles.generatedZipText}>ZIP: {zipCode}</Text>
-                            )}
-
-                            {/* Timestamp */}
-                            <Text style={styles.generatedTimestampText}>
-                                {new Date().toLocaleDateString()} • {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-                            </Text>
-                        </View>
-
-                        {/* Postcard Footer */}
-                        <View style={styles.generatedPostcardFooter}>
-                            <Text style={styles.generatedFooterText}>
-                                Created with Siren Relief
-                            </Text>
                         </View>
                     </View>
 
@@ -908,6 +893,7 @@ const SafetyPostcardScreen = ({ navigation }) => {
             </Animated.View>
         );
     };
+
 
     if (isLoading) {
         return (
@@ -1415,15 +1401,17 @@ const styles = {
     },
     generatedPostcardImage: {
         width: '100%',
-        height: 324,
+        height: 250,
         borderRadius: 8, // Adds curved corners (8px radius)
-        // margin: 16,      // Adds 16px margin on all sides
-        // OR
-        padding: 16,     // Adds 16px padding on all sides
+        paddingLeft: 16,     // Adds 16px padding on all sides
+        paddingRight: 16,     // Adds 16px padding on all sides
     },
     generatedPostcardContent: {
         padding: 20,
         backgroundColor: 'white',
+    },
+    generatedContentTitle: {
+        color: 'black'
     },
     generatedPostcardMessage: {
         fontSize: 16,
@@ -1479,8 +1467,8 @@ const styles = {
     },
     generatedTimestampText: {
         fontSize: 12,
-        color: '#999999',
-        marginTop: 12,
+        color: 'black',
+        marginTop: 2,
     },
     generatedPostcardFooter: {
         padding: 12,
@@ -1508,6 +1496,20 @@ const styles = {
         fontSize: 16,
         fontWeight: '500',
         marginLeft: 8,
+    },
+    nameAndBadgesContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    inlineBadgesContainer: {
+        flexDirection: 'row',
+        marginLeft: 10,
+    },
+    inlineBadgeIcon: {
+        width: 30,
+        height: 30,
+        marginRight: 2,
     },
 };
 
