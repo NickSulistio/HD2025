@@ -20,8 +20,8 @@ export const text = StyleSheet.create({
     title: {
         fontFamily: fonts.title,
         fontSize: fontSizes.title,
-        fontWeight: 'bold',
-        color: colors.black,
+        fontWeight: 'regular',
+        color: colors.white,
     },
 
     bodyLarge: {
@@ -36,7 +36,7 @@ export const text = StyleSheet.create({
         fontFamily: fonts.body,
         fontSize: fontSizes.bodyMedium,
         fontWeight: 'normal',
-        color: colors.darkGray,
+        color: colors.white,
         lineHeight: fontSizes.bodyMedium * 1.5,
     },
 

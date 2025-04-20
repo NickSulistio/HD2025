@@ -1,25 +1,34 @@
+// SafetyPostcardScreen.js
 import React, { useState, useEffect, useRef } from 'react';
 import {
-    StyleSheet,
     View,
     Text,
     TouchableOpacity,
     ScrollView,
-    Image,
     TextInput,
     ActivityIndicator,
     Share,
-    ViewShot,
+    Alert,
     Platform,
-    Alert
+    KeyboardAvoidingView,
+    Keyboard,
+    TouchableWithoutFeedback,
+    Animated,
+    Easing,
+    Switch,
+    Image
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import * as MediaLibrary from 'expo-media-library';
-import * as FileSystem from 'expo-file-system';
 import IncidentService from '../components/IncidentService';
+
+// Import the styles from onboarding - assuming they're in a shared location
+// You'll need to create similar styles or import from the same file
+import { onboardingStyles } from '../styles/onboarding';
+import typography from "../styles/typography";
 
 const POSTCARD_TYPES = [
     { id: 'safe', title: "I'm Safe", icon: 'checkmark-circle', color: '#4CAF50', message: "I'm safe during the current emergency. Stay updated and take care!" },
@@ -38,68 +47,37 @@ const VULNERABLE_AREA_MESSAGES = [
 ];
 
 const SafetyPostcardScreen = ({ navigation }) => {
-    const [selectedType, setSelectedType] = useState(null);
+    const scrollViewRef = useRef(null);
+    const postcardRef = useRef();
+    const [step, setStep] = useState(1);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
+
+    // Animation refs
+    const slideAnim = useRef(new Animated.Value(0)).current;
+    const fadeAnim = useRef(new Animated.Value(1)).current;
+    const progressAnim = useRef(new Animated.Value(1/3)).current;
+
+    // Step 1: Choose status type
+    const [selectedType, setSelectedType] = useState('safe'); // Default to 'safe' for the example
+
+    // Step 2: Location and message
     const [customMessage, setCustomMessage] = useState('');
     const [userLocation, setUserLocation] = useState(null);
     const [locationName, setLocationName] = useState('');
     const [isVulnerableArea, setIsVulnerableArea] = useState(false);
     const [vulnerableMessage, setVulnerableMessage] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-    const [isProcessing, setIsProcessing] = useState(false);
+    const [useCurrentLocation, setUseCurrentLocation] = useState(false);
+    const [locationLoading, setLocationLoading] = useState(false);
+
+    // Step 3: Sharing preferences
     const [incidents, setIncidents] = useState(null);
-    const postcardRef = useRef();
+    const [includeIncidents, setIncludeIncidents] = useState(true);
+    const [includeVulnerableInfo, setIncludeVulnerableInfo] = useState(true);
+    const [includeTimestamp, setIncludeTimestamp] = useState(true);
 
     // Load user location and incident data
     useEffect(() => {
-        const loadLocationAndData = async () => {
-            setIsLoading(true);
-            try {
-                // Get user location
-                let { status } = await Location.requestForegroundPermissionsAsync();
-                if (status === 'granted') {
-                    const location = await Location.getCurrentPositionAsync({});
-                    setUserLocation(location.coords);
-
-                    // Get address from coordinates
-                    const address = await Location.reverseGeocodeAsync({
-                        latitude: location.coords.latitude,
-                        longitude: location.coords.longitude
-                    });
-
-                    if (address && address.length > 0) {
-                        const loc = address[0];
-                        setLocationName(
-                            [loc.city, loc.region].filter(Boolean).join(', ') ||
-                            'Current Location'
-                        );
-                    }
-
-                    // Check if in a vulnerable area (this would be a more complex check in a real app)
-                    // For demo purposes, we'll randomly determine if the area is vulnerable
-                    const isVulnerable = Math.random() > 0.5;
-                    setIsVulnerableArea(isVulnerable);
-
-                    if (isVulnerable) {
-                        // Select a random vulnerable area message
-                        const randomIndex = Math.floor(Math.random() * VULNERABLE_AREA_MESSAGES.length);
-                        setVulnerableMessage(VULNERABLE_AREA_MESSAGES[randomIndex]);
-                    }
-                }
-
-                // Get incident data to show relevant emergencies
-                const incidentData = await IncidentService.getAllIncidents();
-                setIncidents(incidentData);
-            } catch (error) {
-                console.error('Error loading location or incident data:', error);
-                Alert.alert(
-                    'Location Error',
-                    'Unable to access your location. Some features may be limited.'
-                );
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
         loadLocationAndData();
     }, []);
 
@@ -113,13 +91,166 @@ const SafetyPostcardScreen = ({ navigation }) => {
         }
     }, [selectedType]);
 
-    // Generate the postcard image and share it
-    const sharePostcard = async () => {
-        if (!selectedType) {
-            Alert.alert('Select Type', 'Please select a safety status type');
+    // Initialize animations on mount
+    useEffect(() => {
+        slideAnim.setValue(0);
+        fadeAnim.setValue(1);
+        progressAnim.setValue(0.33); // Set initial progress (1/3 for step 1)
+    }, []);
+
+    const loadLocationAndData = async () => {
+        setIsLoading(true);
+        try {
+            // Get incident data to show relevant emergencies
+            const incidentData = await IncidentService.getAllIncidents();
+            setIncidents(incidentData);
+        } catch (error) {
+            console.error('Error loading incident data:', error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const getCurrentLocation = async () => {
+        setLocationLoading(true);
+        try {
+            // Request permission first
+            let { status } = await Location.requestForegroundPermissionsAsync();
+            if (status === 'granted') {
+                const location = await Location.getCurrentPositionAsync({});
+                setUserLocation(location.coords);
+
+                // Get address from coordinates
+                const address = await Location.reverseGeocodeAsync({
+                    latitude: location.coords.latitude,
+                    longitude: location.coords.longitude
+                });
+
+                if (address && address.length > 0) {
+                    const loc = address[0];
+                    setLocationName(
+                        [loc.city, loc.region].filter(Boolean).join(', ') ||
+                        'Current Location'
+                    );
+                }
+
+                // Check if in a vulnerable area (random for demo)
+                const isVulnerable = Math.random() > 0.5;
+                setIsVulnerableArea(isVulnerable);
+
+                if (isVulnerable) {
+                    // Select a random vulnerable area message
+                    const randomIndex = Math.floor(Math.random() * VULNERABLE_AREA_MESSAGES.length);
+                    setVulnerableMessage(VULNERABLE_AREA_MESSAGES[randomIndex]);
+                }
+
+                setUseCurrentLocation(true);
+            } else {
+                Alert.alert(
+                    'Location Permission Required',
+                    'Please enable location services to continue.',
+                    [{ text: 'OK' }]
+                );
+                setUseCurrentLocation(false);
+            }
+        } catch (error) {
+            console.error('Error loading location:', error);
+            Alert.alert(
+                'Location Error',
+                'Unable to access your location. Some features may be limited.'
+            );
+            setUseCurrentLocation(false);
+        } finally {
+            setLocationLoading(false);
+        }
+    };
+
+    // Animation for smooth transitions between steps
+    const animateTransition = (nextStep) => {
+        // Calculate the new progress value
+        const newProgressValue = nextStep / 3;
+
+        // First animate the progress bar separately
+        Animated.timing(progressAnim, {
+            toValue: newProgressValue,
+            duration: 250,
+            easing: Easing.ease,
+            useNativeDriver: false,
+        }).start();
+
+        // Then handle content transition
+        Animated.parallel([
+            Animated.timing(fadeAnim, {
+                toValue: 0,
+                duration: 150,
+                useNativeDriver: true,
+            }),
+            Animated.timing(slideAnim, {
+                toValue: -20, // Slide slightly up when exiting
+                duration: 150,
+                useNativeDriver: true,
+            }),
+        ]).start(() => {
+            // Update step
+            setStep(nextStep);
+
+            // Reset position for slide in animation
+            slideAnim.setValue(30); // Start from below
+
+            // Immediately restore opacity to 0 before animating in
+            fadeAnim.setValue(0);
+
+            // Small delay to ensure state has updated
+            setTimeout(() => {
+                // Fade and slide in new content
+                Animated.parallel([
+                    Animated.timing(fadeAnim, {
+                        toValue: 1,
+                        duration: 250,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(slideAnim, {
+                        toValue: 0,
+                        duration: 250,
+                        useNativeDriver: true,
+                    })
+                ]).start();
+            }, 50);
+        });
+    };
+
+    const goToNextStep = () => {
+        if (step === 1 && !selectedType) {
+            Alert.alert('Selection Required', 'Please select a safety status type');
             return;
         }
 
+        if (step === 2 && !customMessage) {
+            Alert.alert('Message Required', 'Please enter a message for your postcard');
+            return;
+        }
+
+        if (step < 3) {
+            animateTransition(step + 1);
+        } else {
+            // Complete the process and share the postcard
+            sharePostcard();
+        }
+
+        // Scroll to top after step change
+        if (scrollViewRef.current) {
+            scrollViewRef.current.scrollTo({ x: 0, y: 0, animated: false });
+        }
+    };
+
+    const goToPreviousStep = () => {
+        if (step > 1) {
+            animateTransition(step - 1);
+        }
+    };
+
+    // Generate the postcard image and share it
+    const sharePostcard = async () => {
         setIsProcessing(true);
 
         try {
@@ -159,60 +290,139 @@ const SafetyPostcardScreen = ({ navigation }) => {
         }
     };
 
-    if (isLoading) {
-        return (
-            <View style={styles.loadingContainer}>
-                <ActivityIndicator size={48} color="#007AFF" />
-                <Text style={styles.loadingText}>Preparing your safety postcard...</Text>
+    // Render progress indicator
+    const renderProgressBar = () => (
+        <View style={onboardingStyles.progressContainer}>
+            <View style={onboardingStyles.progressBar}>
+                <Animated.View
+                    style={[
+                        onboardingStyles.progressFill,
+                        {
+                            width: progressAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: ['0%', '100%']
+                            })
+                        }
+                    ]}
+                />
             </View>
-        );
-    }
+            <Text style={[onboardingStyles.stepText, { textAlign: 'right' }]}>
+                Step {step} of 3
+            </Text>
+        </View>
+    );
 
-    return (
-        <ScrollView style={styles.container}>
-            <Text style={styles.title}>Safety Postcard</Text>
-            <Text style={styles.subtitle}>Share your status with friends, family and community</Text>
+    // Render step 1: Example Postcard (replacing the status type selection)
+    const renderExamplePostcardStep = () => (
+        <Animated.View
+            style={[
+                onboardingStyles.stepContainer,
+                { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+            ]}
+        >
+            <Text style={onboardingStyles.headline}>Siren Relief</Text>
+            <Text style={{...typography.title, marginBottom:16}}>Postcards</Text>
+            <Text style={{...typography.bodyMedium, marginBottom:16}}>
+                Support your community by sharing an update on what you need or how you can help.
+            </Text>
 
-            <View style={styles.typeSection}>
-                <Text style={styles.sectionTitle}>1. Choose your status:</Text>
-                <View style={styles.typeGrid}>
-                    {POSTCARD_TYPES.map((type) => (
-                        <TouchableOpacity
-                            key={type.id}
-                            style={[
-                                styles.typeButton,
-                                selectedType === type.id && { borderColor: type.color, borderWidth: 3 }
-                            ]}
-                            onPress={() => setSelectedType(type.id)}
-                        >
-                            <Ionicons name={type.icon} size={32} color={type.color} />
-                            <Text style={[styles.typeTitle, { color: type.color }]}>{type.title}</Text>
-                        </TouchableOpacity>
-                    ))}
+            <View style={onboardingStyles.fieldContainer}>
+                <Text style={[onboardingStyles.label, { paddingTop: 24, marginBottom: 5 }]}>Here's an example:</Text>
+
+                {/* Example Postcard Image */}
+                <View style={styles.exampleImageContainer}>
+                    <Image
+                        source={require('../assets/3_kodi.png')}
+                        style={styles.exampleImage}
+                        resizeMode="contain"
+                    />
                 </View>
+
+                <Text style={styles.exampleCaption}>
+                    Create your own postcard to share your emergency status with others
+                </Text>
+            </View>
+        </Animated.View>
+    );
+
+    // Render step 2: Location and message with centered image
+    const renderLocationMessageStep = () => (
+        <Animated.View
+            style={[
+                onboardingStyles.stepContainer,
+                { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+            ]}
+        >
+            {/* Image centered in the middle of the screen */}
+            <View style={styles.exampleImageContainer}>
+                <Image
+                    source={require('../assets/example_postcard.png')}
+                    style={styles.exampleImage}
+                    resizeMode="contain"
+                />
             </View>
 
-            <View style={styles.messageSection}>
-                <Text style={styles.sectionTitle}>2. Customize your message:</Text>
-                <TextInput
-                    style={styles.messageInput}
-                    multiline
-                    numberOfLines={4}
-                    value={customMessage}
-                    onChangeText={setCustomMessage}
-                    placeholder="Enter your message here..."
+            {/* Headline and body text below the image */}
+            <Text style={{...onboardingStyles.headline, marginBottom: 16}}>
+                Postcards
+            </Text>
+            <Text style={{...typography.bodyLarge, marginBottom: 24}}>
+                Support your community by sharing an update on what you need or how you can help.
+            </Text>
+
+
+        </Animated.View>
+    );
+
+    // Render step 3: Preview and Share
+    const renderPreviewShareStep = () => (
+        <Animated.View
+            style={[
+                onboardingStyles.stepContainer,
+                { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+            ]}
+        >
+            <Text style={onboardingStyles.headline}>Preview & Share</Text>
+            <Text style={onboardingStyles.bodyLarge}>
+                Review your safety postcard and customize sharing options.
+            </Text>
+
+            <View style={onboardingStyles.switchContainer}>
+                <Text style={onboardingStyles.label}>Include active incidents</Text>
+                <Switch
+                    value={includeIncidents}
+                    onValueChange={setIncludeIncidents}
+                    trackColor={{ false: '#555555', true: '#BFDEFF' }}
+                    thumbColor={includeIncidents ? '#FFFFFF' : '#F4F4F4'}
+                    ios_backgroundColor="#555555"
                 />
             </View>
 
             {isVulnerableArea && (
-                <View style={styles.vulnerableBanner}>
-                    <Ionicons name="alert-circle" size={24} color="#FF9800" />
-                    <Text style={styles.vulnerableText}>{vulnerableMessage}</Text>
+                <View style={onboardingStyles.switchContainer}>
+                    <Text style={onboardingStyles.label}>Include vulnerable area info</Text>
+                    <Switch
+                        value={includeVulnerableInfo}
+                        onValueChange={setIncludeVulnerableInfo}
+                        trackColor={{ false: '#555555', true: '#BFDEFF' }}
+                        thumbColor={includeVulnerableInfo ? '#FFFFFF' : '#F4F4F4'}
+                        ios_backgroundColor="#555555"
+                    />
                 </View>
             )}
 
-            <Text style={styles.sectionTitle}>3. Preview your postcard:</Text>
+            <View style={onboardingStyles.switchContainer}>
+                <Text style={onboardingStyles.label}>Include timestamp</Text>
+                <Switch
+                    value={includeTimestamp}
+                    onValueChange={setIncludeTimestamp}
+                    trackColor={{ false: '#555555', true: '#BFDEFF' }}
+                    thumbColor={includeTimestamp ? '#FFFFFF' : '#F4F4F4'}
+                    ios_backgroundColor="#555555"
+                />
+            </View>
 
+            <Text style={onboardingStyles.label}>Postcard Preview:</Text>
             <View style={styles.postcardContainer}>
                 <View ref={postcardRef} style={styles.postcard}>
                     <View style={styles.postcardHeader}>
@@ -237,21 +447,27 @@ const SafetyPostcardScreen = ({ navigation }) => {
                     <View style={styles.postcardBody}>
                         <Text style={styles.postcardMessage}>{customMessage}</Text>
 
-                        {incidents && incidents.fires && incidents.fires.length > 0 && (
+                        {includeIncidents && incidents && incidents.fires && incidents.fires.length > 0 && (
                             <Text style={styles.activeIncidentsText}>
                                 Active incidents: {incidents.fires.map(fire => fire.title).join(', ')}
                             </Text>
                         )}
 
-                        {isVulnerableArea && (
+                        {includeVulnerableInfo && isVulnerableArea && (
                             <Text style={styles.postcardVulnerableMessage}>{vulnerableMessage}</Text>
                         )}
                     </View>
 
                     <View style={styles.postcardFooter}>
-                        <Ionicons name="location" size={16} color="#666" />
-                        <Text style={styles.locationText}>{locationName}</Text>
-                        <Text style={styles.timestampText}>{new Date().toLocaleString()}</Text>
+                        {useCurrentLocation && (
+                            <>
+                                <Ionicons name="location" size={16} color="#666" />
+                                <Text style={styles.locationText}>{locationName}</Text>
+                            </>
+                        )}
+                        {includeTimestamp && (
+                            <Text style={styles.timestampText}>{new Date().toLocaleString()}</Text>
+                        )}
                     </View>
 
                     <View style={styles.postcardBranding}>
@@ -259,37 +475,102 @@ const SafetyPostcardScreen = ({ navigation }) => {
                     </View>
                 </View>
             </View>
+        </Animated.View>
+    );
 
-            <TouchableOpacity
-                style={styles.shareButton}
-                onPress={sharePostcard}
-                disabled={isProcessing}
-            >
-                {isProcessing ? (
-                    <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                    <>
-                        <Ionicons name="share-social" size={24} color="#fff" />
-                        <Text style={styles.shareButtonText}>Share Postcard</Text>
-                    </>
-                )}
-            </TouchableOpacity>
-
-            <View style={styles.shareInfo}>
-                <Text style={styles.shareInfoText}>
-                    Your postcard can be shared to Instagram stories, Facebook, Messages, and more.
-                </Text>
+    if (isLoading) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size={48} color="#007AFF" />
+                <Text style={styles.loadingText}>Preparing your safety postcard...</Text>
             </View>
-        </ScrollView>
+        );
+    }
+
+    return (
+        <KeyboardAvoidingView
+            style={[onboardingStyles.container, { flex: 1 }]}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
+        >
+            {/* Dismiss keyboard when tapping outside of TextInput */}
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+                <View style={{ flex: 1 }}>
+                    {/* Progress bar - kept outside the ScrollView to ensure visibility */}
+                    <View style={{ paddingTop: Platform.OS === 'ios' ? 30 : 25 }}>
+                        {renderProgressBar()}
+                    </View>
+
+                    {/* Main Content - Wrap in a flex View */}
+                    <View style={{ flex: 1 }}>
+                        <ScrollView
+                            ref={scrollViewRef}
+                            style={onboardingStyles.scrollView}
+                            contentContainerStyle={onboardingStyles.scrollViewContent}
+                            keyboardShouldPersistTaps="handled"
+                        >
+                            {step === 1 && renderExamplePostcardStep()}
+                            {step === 2 && renderLocationMessageStep()}
+                            {step === 3 && renderPreviewShareStep()}
+
+                            {/* Add extra padding at the bottom to ensure scrolling works well */}
+                            <View style={{ height: 80 }} />
+                        </ScrollView>
+                    </View>
+                </View>
+            </TouchableWithoutFeedback>
+
+            {/* Footer with continue button and back button - positioned absolutely */}
+            <View style={[onboardingStyles.footer, {
+                position: 'absolute',
+                bottom: 20,
+                left: 0,
+                right: 0,
+                borderTopWidth: 0,
+                paddingTop: 0,
+            }]}>
+                {/* Back button (only shown on steps 2 and 3) */}
+                {step > 1 && (
+                    <TouchableOpacity
+                        style={{
+                            alignItems: 'center',
+                            paddingVertical: 12,
+                            marginBottom: 8,
+                        }}
+                        onPress={goToPreviousStep}
+                    >
+                        <Text style={{
+                            fontFamily: 'OpenSans',
+                            fontSize: 15,
+                            color: '#FFFFFF',
+                            fontWeight: '500',
+                        }}>
+                            Back
+                        </Text>
+                    </TouchableOpacity>
+                )}
+
+                {/* Continue button */}
+                <TouchableOpacity
+                    style={onboardingStyles.continueButton}
+                    onPress={goToNextStep}
+                    disabled={isProcessing}
+                >
+                    {isProcessing && step === 3 ? (
+                        <ActivityIndicator size="small" color="#fff" />
+                    ) : (
+                        <Text style={onboardingStyles.continueButtonText}>
+                            {step < 3 ? 'Continue' : 'Share Postcard'}
+                        </Text>
+                    )}
+                </TouchableOpacity>
+            </View>
+        </KeyboardAvoidingView>
     );
 };
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#f8f9fa',
-        padding: 16,
-    },
+// Add the styles that aren't in the onboardingStyles
+const styles = {
     loadingContainer: {
         flex: 1,
         justifyContent: 'center',
@@ -300,64 +581,24 @@ const styles = StyleSheet.create({
         fontSize: 16,
         color: '#555',
     },
-    title: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        marginBottom: 8,
-        textAlign: 'center',
-    },
-    subtitle: {
-        fontSize: 16,
-        color: '#666',
-        marginBottom: 24,
-        textAlign: 'center',
-    },
-    sectionTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 12,
-        color: '#333',
-    },
-    typeSection: {
-        marginBottom: 24,
-    },
-    typeGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        justifyContent: 'space-between',
-    },
-    typeButton: {
-        width: '48%',
-        backgroundColor: 'white',
-        borderRadius: 12,
-        padding: 16,
+    // Updated styles for images
+    exampleImageContainer: {
         alignItems: 'center',
-        marginBottom: 16,
-        borderWidth: 1,
-        borderColor: '#e0e0e0',
-        elevation: 2,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.1,
-        shadowRadius: 2,
+        justifyContent: 'center',
+        marginTop: 0,
+        width: '100%',
     },
-    typeTitle: {
+    exampleImage: {
+        width: '100%',
+        height: undefined,
+        aspectRatio: 1, // Adjust this value if needed to maintain proper aspect ratio
+    },
+    exampleCaption: {
+        textAlign: 'center',
+        color: '#666',
+        fontSize: 14,
         marginTop: 8,
-        fontWeight: 'bold',
-        fontSize: 16,
-    },
-    messageSection: {
-        marginBottom: 24,
-    },
-    messageInput: {
-        backgroundColor: 'white',
-        borderRadius: 8,
-        padding: 12,
-        borderWidth: 1,
-        borderColor: '#e0e0e0',
-        minHeight: 100,
-        textAlignVertical: 'top',
-        fontSize: 16,
+        fontStyle: 'italic',
     },
     vulnerableBanner: {
         flexDirection: 'row',
@@ -365,7 +606,7 @@ const styles = StyleSheet.create({
         backgroundColor: '#FFF8E1',
         borderRadius: 8,
         padding: 16,
-        marginBottom: 24,
+        marginTop: 16,
         borderLeftWidth: 4,
         borderLeftColor: '#FF9800',
     },
@@ -464,32 +705,6 @@ const styles = StyleSheet.create({
         color: 'white',
         fontWeight: 'bold',
     },
-    shareButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#4CAF50',
-        borderRadius: 8,
-        padding: 16,
-        marginTop: 24,
-        marginBottom: 16,
-    },
-    shareButtonText: {
-        color: 'white',
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginLeft: 12,
-    },
-    shareInfo: {
-        padding: 16,
-        alignItems: 'center',
-        marginBottom: 24,
-    },
-    shareInfoText: {
-        fontSize: 14,
-        color: '#666',
-        textAlign: 'center',
-    }
-});
+};
 
 export default SafetyPostcardScreen;

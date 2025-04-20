@@ -79,7 +79,7 @@ export default function App() {
     if (isLoading) {
         return (
             <View style={styles.loadingContainer}>
-                <ActivityIndicator size={48} color="#007AFF" />
+                <ActivityIndicator size={48} color="#000000" />
                 <Text style={styles.loadingText}>Loading emergency data...</Text>
             </View>
         );
@@ -118,23 +118,21 @@ export default function App() {
 
                             return <Ionicons name={iconName} size={size} color={color} />;
                         },
-                        tabBarActiveTintColor: '#007AFF',
-                        tabBarInactiveTintColor: 'gray',
-                        headerShown: true,
-                        headerStyle: {
-                            backgroundColor: '#007AFF',
+                        tabBarActiveTintColor: '#FFFFFF',
+                        tabBarInactiveTintColor: '#AAAAAA',
+                        tabBarStyle: {
+                            backgroundColor: '#000000',
+                            borderTopColor: '#333333',
+                            height: 65,
+                            paddingTop: 5,
+                            paddingBottom: 10,
                         },
-                        headerTintColor: '#FFFFFF',
-                        headerTitleStyle: {
-                            fontWeight: 'bold',
-                            fontFamily: 'Helvetica',
-                            fontSize: 22, // Title font size from your design system
-                        },
+                        headerShown: false,
                     })}
                 >
                     <Tab.Screen
                         name="Map"
-                        options={{ title: 'Live Incident Map' }}
+                        options={{ title: 'Map' }}
                     >
                         {(props) => <LiveIncidentMapWithZones {...props} incidentData={incidentData} userProfile={userProfile} />}
                     </Tab.Screen>
@@ -163,7 +161,7 @@ export default function App() {
                     </Tab.Screen>
                 </Tab.Navigator>
             </NavigationContainer>
-            <StatusBar style="auto" />
+            <StatusBar style="light" />
         </>
     );
 }
@@ -219,7 +217,7 @@ const styles = StyleSheet.create({
         fontFamily: 'Helvetica',
         fontWeight: 'bold',
         marginBottom: 8,
-        color: '#007AFF',
+        color: '#000000', // Changed from blue to black
     },
     infoText: {
         fontSize: 15, // Body Medium from your design system

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, Platform, Animated, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import IncidentService from './IncidentService';
@@ -63,8 +63,82 @@ const LiveIncidentMapWithZones = ({ incidentData }) => {
     const [loading, setLoading] = useState(true);
     const [selectedZone, setSelectedZone] = useState(null);
 
+    // New state for incident service panel
+    const [showIncidentService, setShowIncidentService] = useState(false);
+    const [reportType, setReportType] = useState('');
+    const [reportDescription, setReportDescription] = useState('');
+    const [submittingReport, setSubmittingReport] = useState(false);
+
+    // Animation value for the sliding panel
+    const slideAnimation = useRef(new Animated.Value(0)).current;
+
     // Reference to the map
     const mapRef = useRef(null);
+
+    // Function to toggle the incident service panel
+    const toggleIncidentService = () => {
+        if (showIncidentService) {
+            // Slide down
+            Animated.timing(slideAnimation, {
+                toValue: 0,
+                duration: 300,
+                useNativeDriver: true,
+            }).start(() => {
+                setShowIncidentService(false);
+            });
+        } else {
+            setShowIncidentService(true);
+            // Slide up
+            Animated.timing(slideAnimation, {
+                toValue: 1,
+                duration: 300,
+                useNativeDriver: true,
+            }).start();
+        }
+    };
+
+    // Function to submit a user report
+    const submitReport = async () => {
+        if (!reportType || !reportDescription) {
+            // Show some validation error
+            return;
+        }
+
+        setSubmittingReport(true);
+        try {
+            // Get current location for the report
+            const coords = location ? {
+                latitude: location.coords.latitude,
+                longitude: location.coords.longitude,
+            } : null;
+
+            // Create report object
+            const report = {
+                type: reportType,
+                description: reportDescription,
+                timestamp: Date.now(),
+                ...coords,
+            };
+
+            // Submit report via IncidentService
+            const result = await IncidentService.submitUserReport(report);
+
+            // Reset form and show success message
+            setReportType('');
+            setReportDescription('');
+
+            // Close the panel after submission
+            toggleIncidentService();
+
+            // You might want to add some feedback here
+            console.log('Report submitted successfully', result);
+        } catch (error) {
+            console.error('Error submitting report:', error);
+            // Handle error here
+        } finally {
+            setSubmittingReport(false);
+        }
+    };
 
     useEffect(() => {
         // Load incidents if not provided through props
@@ -269,6 +343,12 @@ const LiveIncidentMapWithZones = ({ incidentData }) => {
         longitudeDelta: 0.0421,
     };
 
+    // Animation interpolation
+    const translateY = slideAnimation.interpolate({
+        inputRange: [0, 1],
+        outputRange: [500, 0], // Panel height - increased to ensure buttons are visible
+    });
+
     return (
         <View style={mapDarkStyles.container}>
             <MapView
@@ -428,14 +508,221 @@ const LiveIncidentMapWithZones = ({ incidentData }) => {
                 </View>
             )}
 
+            {/* User location button */}
             <TouchableOpacity
                 style={mapDarkStyles.locateButton}
                 onPress={centerOnUserLocation}
             >
                 <Ionicons name="locate" size={24} color="#DDDDDD" />
             </TouchableOpacity>
+
+            {/* New Report Incident Button */}
+            <TouchableOpacity
+                style={styles.reportButton}
+                onPress={toggleIncidentService}
+            >
+                <Ionicons name="alert-circle" size={24} color="#FFFFFF" />
+                <Text style={styles.reportButtonText}>Report Incident</Text>
+            </TouchableOpacity>
+
+            {/* Incident Service Panel */}
+            {showIncidentService && (
+                <Animated.View
+                    style={[
+                        styles.panelContainer,
+                        { transform: [{ translateY }] }
+                    ]}
+                >
+                    <View style={styles.panelHandle}></View>
+                    <Text style={styles.panelTitle}>Report an Incident</Text>
+
+                    <View style={styles.typeButtonsContainer}>
+                        <TouchableOpacity
+                            style={[styles.typeButton, reportType === 'fire' && styles.typeButtonSelected]}
+                            onPress={() => setReportType('fire')}
+                        >
+                            <Ionicons name="flame" size={24} color={reportType === 'fire' ? '#FFFFFF' : '#FF5733'} />
+                            <Text style={styles.typeButtonText}>Fire</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.typeButton, reportType === 'flood' && styles.typeButtonSelected]}
+                            onPress={() => setReportType('flood')}
+                        >
+                            <Ionicons name="water" size={24} color={reportType === 'flood' ? '#FFFFFF' : '#3498DB'} />
+                            <Text style={styles.typeButtonText}>Flood</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.typeButton, reportType === 'hazard' && styles.typeButtonSelected]}
+                            onPress={() => setReportType('hazard')}
+                        >
+                            <Ionicons name="warning" size={24} color={reportType === 'hazard' ? '#FFFFFF' : '#FFC300'} />
+                            <Text style={styles.typeButtonText}>Hazard</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.typeButton, reportType === 'other' && styles.typeButtonSelected]}
+                            onPress={() => setReportType('other')}
+                        >
+                            <Ionicons name="alert-circle" size={24} color={reportType === 'other' ? '#FFFFFF' : '#9B59B6'} />
+                            <Text style={styles.typeButtonText}>Other</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Description input would go here - using a placeholder Text component */}
+                    <View style={styles.descriptionContainer}>
+                        <Text style={styles.descriptionLabel}>Description</Text>
+                        <View style={styles.descriptionInput}>
+                            <Text style={styles.descriptionPlaceholder}>
+                                {reportDescription || "Describe the incident and its severity..."}
+                            </Text>
+                        </View>
+                    </View>
+
+                    <View style={styles.buttonContainer}>
+                        <TouchableOpacity
+                            style={styles.cancelButton}
+                            onPress={toggleIncidentService}
+                        >
+                            <Text style={styles.buttonText}>Cancel</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={[styles.submitButton, (!reportType || submittingReport) && styles.submitButtonDisabled]}
+                            onPress={submitReport}
+                            disabled={!reportType || submittingReport}
+                        >
+                            {submittingReport ? (
+                                <ActivityIndicator size="small" color="#FFFFFF" />
+                            ) : (
+                                <Text style={styles.buttonText}>Submit Report</Text>
+                            )}
+                        </TouchableOpacity>
+                    </View>
+                </Animated.View>
+            )}
         </View>
     );
 };
+
+// New styles for the incident service panel
+const styles = StyleSheet.create({
+    reportButton: {
+        position: 'absolute',
+        bottom: 20,
+        right: 20,
+        backgroundColor: '#FF5733',
+        borderRadius: 24,
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 3,
+    },
+    reportButtonText: {
+        color: '#FFFFFF',
+        fontWeight: 'bold',
+        marginLeft: 8,
+    },
+    panelContainer: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: '#1C1C1E',
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        padding: 20,
+        paddingTop: 10,
+        paddingBottom: 30, // Increased padding at the bottom
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: -3 },
+        shadowOpacity: 0.3,
+        shadowRadius: 5,
+        elevation: 10,
+        height: 350, // Increased height to accommodate all content
+    },
+    panelHandle: {
+        width: 40,
+        height: 5,
+        borderRadius: 3,
+        backgroundColor: '#FFFFFF50',
+        alignSelf: 'center',
+        marginBottom: 10,
+    },
+    panelTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#FFFFFF',
+        marginBottom: 15, // Slightly reduced to save space
+        textAlign: 'center',
+    },
+    typeButtonsContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginBottom: 15, // Slightly reduced to save space
+    },
+    typeButton: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: '#2A2A2A',
+        borderRadius: 10,
+        padding: 10,
+        marginHorizontal: 5,
+    },
+    typeButtonSelected: {
+        backgroundColor: '#007AFF',
+    },
+    typeButtonText: {
+        color: '#FFFFFF',
+        marginTop: 5,
+        fontSize: 12,
+    },
+    descriptionContainer: {
+        marginBottom: 15, // Slightly reduced to save space
+    },
+    descriptionLabel: {
+        color: '#FFFFFF',
+        marginBottom: 5,
+    },
+    descriptionInput: {
+        backgroundColor: '#2A2A2A',
+        borderRadius: 10,
+        padding: 15,
+        minHeight: 70, // Slightly reduced height
+    },
+    descriptionPlaceholder: {
+        color: '#777777',
+    },
+    buttonContainer: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        marginTop: 5, // Added margin at the top for better spacing
+    },
+    cancelButton: {
+        flex: 1,
+        backgroundColor: '#444444',
+        paddingVertical: 12,
+        borderRadius: 10,
+        alignItems: 'center',
+        marginRight: 10,
+    },
+    submitButton: {
+        flex: 2,
+        backgroundColor: '#FF5733',
+        paddingVertical: 12,
+        borderRadius: 10,
+        alignItems: 'center',
+    },
+    submitButtonDisabled: {
+        backgroundColor: '#666666',
+    },
+    buttonText: {
+        color: '#FFFFFF',
+        fontWeight: 'bold',
+    },
+});
 
 export default LiveIncidentMapWithZones;
