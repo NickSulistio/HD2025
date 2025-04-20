@@ -40,6 +40,73 @@ const zoneTypes = {
     }
 };
 
+// Updated styles for black background buttons and legend with 60% opacity
+const updatedStyles = StyleSheet.create({
+    locateButton: {
+        position: 'absolute',
+        bottom: 80,
+        right: 20,
+        backgroundColor: '#000000', // Changed from gray to black
+        padding: 12,
+        borderRadius: 30,
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 3,
+    },
+    legendContainer: {
+        position: 'absolute',
+        bottom: 20, // Moved back to bottom left
+        left: 10,
+        backgroundColor: 'rgba(0, 0, 0, 0.7)', // Changed to 60% opacity
+        padding: 10,
+        borderRadius: 15,
+        elevation: 5,
+        maxWidth: 200,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 3,
+    },
+    alertContainer: {
+        position: 'absolute',
+        top: 60, // Shifted downward by a lot
+        left: 10,
+        right: 10,
+        backgroundColor: 'rgba(0, 0, 0, 0.7)', // Changed to 60% opacity
+        padding: 24,
+        borderRadius: 10, // No border/outline
+        flexDirection: 'column',
+        elevation: 5,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 3,
+    },
+    alertTitle: {
+        color: '#FFFFFF',
+        fontWeight: 'bold',
+        fontSize: 16,
+        marginBottom: 5,
+    },
+    alertMessage: {
+        color: '#DDDDDD',
+        fontSize: 14,
+        marginBottom: 5,
+    },
+    alertStatus: {
+        color: '#FF0000',
+        fontWeight: 'bold',
+        fontSize: 14,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    alertIcon: {
+        marginRight: 5,
+    }
+});
+
 const LiveIncidentMapWithZones = ({ incidentData }) => {
     const [location, setLocation] = useState(null);
     const [errorMsg, setErrorMsg] = useState(null);
@@ -52,7 +119,8 @@ const LiveIncidentMapWithZones = ({ incidentData }) => {
         earthquakes: true,
         emergencyZones: true, // All zones visible by default
     });
-    const [legendVisible, setLegendVisible] = useState(true); // New state for legend visibility
+    const [legendVisible, setLegendVisible] = useState(true); // State for legend visibility
+    const [alertVisible, setAlertVisible] = useState(true); // New state for alert visibility
     const [selectedIncident, setSelectedIncident] = useState(null);
     const [incidents, setIncidents] = useState(null);
     const [emergencyZones, setEmergencyZones] = useState([]);
@@ -62,9 +130,10 @@ const LiveIncidentMapWithZones = ({ incidentData }) => {
     // Reference to the map
     const mapRef = useRef(null);
 
-    // Function to toggle only the legend visibility
-    const toggleLegend = () => {
+    // Function to toggle legend and alert visibility
+    const toggleLegendAndAlert = () => {
         setLegendVisible(prev => !prev);
+        setAlertVisible(prev => !prev);
     };
 
     useEffect(() => {
@@ -334,10 +403,24 @@ const LiveIncidentMapWithZones = ({ incidentData }) => {
                 })}
             </MapView>
 
+            {/* NEW: Alert Message at the top */}
+            {alertVisible && (
+                <View style={updatedStyles.alertContainer}>
+                    <Text style={updatedStyles.alertTitle}>EVACUATION ALERT: FIRE (0.8 mi)</Text>
+                    <Text style={updatedStyles.alertMessage}>
+                        Evacuate immediately. Gather loved ones and supplies. Check out resources below.
+                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Ionicons name="warning" size={18} color="#FF0000" style={updatedStyles.alertIcon} />
+                        <Text style={updatedStyles.alertStatus}>STATUS: CRITICAL</Text>
+                    </View>
+                </View>
+            )}
+
             {/* Emergency Zone Legend - Toggleable */}
             {legendVisible && (
-                <View style={mapDarkStyles.legendContainer}>
-                    <Text style={mapDarkStyles.legendTitle}>Emergency Zones</Text>
+                <View style={updatedStyles.legendContainer}>
+                    <Text style={mapDarkStyles.legendTitle}>Legend</Text>
                     {Object.keys(zoneTypes).map(type => (
                         <View key={type} style={mapDarkStyles.legendItem}>
                             <View
@@ -384,18 +467,18 @@ const LiveIncidentMapWithZones = ({ incidentData }) => {
                 </View>
             )}
 
-            {/* User location button */}
+            {/* User location button - now using updated styles */}
             <TouchableOpacity
-                style={mapDarkStyles.locateButton}
+                style={updatedStyles.locateButton}
                 onPress={centerOnUserLocation}
             >
                 <Ionicons name="locate" size={24} color="#DDDDDD" />
             </TouchableOpacity>
 
-            {/* Toggle Legend Button - using the original position but with mapDarkStyles styling */}
+            {/* Toggle Legend Button - now using updated styles and toggling both legend and alert */}
             <TouchableOpacity
-                style={[mapDarkStyles.locateButton, { bottom: 20, right: 20 }]}
-                onPress={toggleLegend}
+                style={[updatedStyles.locateButton, { bottom: 20, right: 20 }]}
+                onPress={toggleLegendAndAlert}
             >
                 <Ionicons
                     name={legendVisible ? "layers" : "layers-outline"}
