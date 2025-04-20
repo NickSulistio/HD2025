@@ -1,4 +1,4 @@
-// SafetyPostcardScreen.js
+// SafetyPostcardScreen.js - Updated animation transitions
 import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
@@ -26,10 +26,10 @@ import * as MediaLibrary from 'expo-media-library';
 import IncidentService from '../components/IncidentService';
 
 // Import the styles from onboarding - assuming they're in a shared location
-// You'll need to create similar styles or import from the same file
 import { onboardingStyles } from '../styles/onboarding';
 import typography from "../styles/typography";
 
+// All constant data remains the same
 const POSTCARD_TYPES = [
     { id: 'safe', title: "I'm Safe", icon: 'checkmark-circle', color: '#4CAF50', message: "I'm safe during the current emergency. Stay updated and take care!" },
     { id: 'help', title: "I Need Help", icon: 'help-circle', color: '#F44336', message: "I need assistance during this emergency. Please reach out if you can help." },
@@ -37,7 +37,6 @@ const POSTCARD_TYPES = [
     { id: 'volunteering', title: "I'm Volunteering", icon: 'megaphone', color: '#2196F3', message: "I'm volunteering to help during this emergency. Contact me to get involved!" }
 ];
 
-// NEW: Postcard options for step 4
 const POSTCARD_OPTIONS = [
     { id: 'awareness', title: "Awareness Postcard", icon: 'megaphone-outline', color: '#3F51B5', message: "Let people know about your situation and invite others offer support " },
     { id: 'priority', title: "High Priority Alert", icon: 'warning-outline', color: '#FF5722', message: "Let people know about a missing person or pet from your household." },
@@ -45,7 +44,6 @@ const POSTCARD_OPTIONS = [
     { id: 'support', title: "Offer Support", icon: 'help-buoy-outline', color: '#009688', message: "Let others know you're open to volunteering or providing resources." }
 ];
 
-// Vulnerable area messages for social justice integration
 const VULNERABLE_AREA_MESSAGES = [
     "Checking in from a high-risk zone — resources are limited here.",
     "This area often receives less attention during disasters but needs support too.",
@@ -54,7 +52,6 @@ const VULNERABLE_AREA_MESSAGES = [
     "Areas like this one face disproportionate impacts during emergencies."
 ];
 
-// NEW: Resources options for step 1
 const RESOURCES_OPTIONS = [
     { id: 'shelters', title: "Shelters", icon: 'home-outline', color: '#FF6F00', bgColor: 'rgba(255,111,0,0.2)' },
     { id: 'reliefCenters', title: "Relief Centers", icon: 'medical-outline', color: '#00CE0A', bgColor: 'rgba(0,206,10,0.2)' },
@@ -64,19 +61,18 @@ const RESOURCES_OPTIONS = [
 const SafetyPostcardScreen = ({ navigation }) => {
     const scrollViewRef = useRef(null);
     const postcardRef = useRef();
-    const [step, setStep] = useState(1);
+    const [inPostcardFlow, setInPostcardFlow] = useState(false);
+    const [step, setStep] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
 
     // Animation refs
     const slideAnim = useRef(new Animated.Value(0)).current;
     const fadeAnim = useRef(new Animated.Value(1)).current;
-    const progressAnim = useRef(new Animated.Value(1/4)).current; // Updated for 4 steps
+    const progressAnim = useRef(new Animated.Value(0)).current; // Start at 0, not 1/3
 
-    // Step 1: Choose status type
-    const [selectedType, setSelectedType] = useState('safe'); // Default to 'safe' for the example
-
-    // Step 2: Location and message
+    // Step 1: Location and message
+    const [selectedType, setSelectedType] = useState('safe');
     const [customMessage, setCustomMessage] = useState('');
     const [userLocation, setUserLocation] = useState(null);
     const [locationName, setLocationName] = useState('');
@@ -85,19 +81,19 @@ const SafetyPostcardScreen = ({ navigation }) => {
     const [useCurrentLocation, setUseCurrentLocation] = useState(false);
     const [locationLoading, setLocationLoading] = useState(false);
 
-    // Step 3: Badges (New)
+    // Step 2: Badges
     const [selectedBadge, setSelectedBadge] = useState(null);
 
-    // Step 4: Create a Postcard - NEW
+    // Step 3: Create a Postcard
     const [selectedPostcardOption, setSelectedPostcardOption] = useState(null);
 
-    // Sharing preferences (moved from step 4)
+    // Sharing preferences
     const [incidents, setIncidents] = useState(null);
     const [includeIncidents, setIncludeIncidents] = useState(true);
     const [includeVulnerableInfo, setIncludeVulnerableInfo] = useState(true);
     const [includeTimestamp, setIncludeTimestamp] = useState(true);
 
-    // NEW: Selected resource
+    // Selected resource
     const [selectedResource, setSelectedResource] = useState(null);
 
     // Load user location and incident data
@@ -115,12 +111,24 @@ const SafetyPostcardScreen = ({ navigation }) => {
         }
     }, [selectedType]);
 
-    // Initialize animations on mount
+    // Update progress animation when step or inPostcardFlow changes
     useEffect(() => {
-        slideAnim.setValue(0);
-        fadeAnim.setValue(1);
-        progressAnim.setValue(0.25); // Set initial progress (1/4 for step 1)
-    }, []);
+        if (inPostcardFlow) {
+            // Calculate the correct progress value (1/3, 2/3, 3/3)
+            const newProgressValue = step / 3;
+
+            // Use timing animation for smooth progress transition
+            Animated.timing(progressAnim, {
+                toValue: newProgressValue,
+                duration: 250,
+                easing: Easing.ease,
+                useNativeDriver: false,
+            }).start();
+        } else {
+            // Reset progress to 0 when not in postcard flow
+            progressAnim.setValue(0);
+        }
+    }, [step, inPostcardFlow]);
 
     const loadLocationAndData = async () => {
         setIsLoading(true);
@@ -136,15 +144,14 @@ const SafetyPostcardScreen = ({ navigation }) => {
     };
 
     const getCurrentLocation = async () => {
+        // Location-related code remains the same
         setLocationLoading(true);
         try {
-            // Request permission first
             let { status } = await Location.requestForegroundPermissionsAsync();
             if (status === 'granted') {
                 const location = await Location.getCurrentPositionAsync({});
                 setUserLocation(location.coords);
 
-                // Get address from coordinates
                 const address = await Location.reverseGeocodeAsync({
                     latitude: location.coords.latitude,
                     longitude: location.coords.longitude
@@ -158,12 +165,10 @@ const SafetyPostcardScreen = ({ navigation }) => {
                     );
                 }
 
-                // Check if in a vulnerable area (random for demo)
                 const isVulnerable = Math.random() > 0.5;
                 setIsVulnerableArea(isVulnerable);
 
                 if (isVulnerable) {
-                    // Select a random vulnerable area message
                     const randomIndex = Math.floor(Math.random() * VULNERABLE_AREA_MESSAGES.length);
                     setVulnerableMessage(VULNERABLE_AREA_MESSAGES[randomIndex]);
                 }
@@ -189,20 +194,9 @@ const SafetyPostcardScreen = ({ navigation }) => {
         }
     };
 
-    // Animation for smooth transitions between steps
+    // Improved animation transition function
     const animateTransition = (nextStep) => {
-        // Calculate the new progress value
-        const newProgressValue = nextStep / 4; // Updated for 4 steps
-
-        // First animate the progress bar separately
-        Animated.timing(progressAnim, {
-            toValue: newProgressValue,
-            duration: 250,
-            easing: Easing.ease,
-            useNativeDriver: false,
-        }).start();
-
-        // Then handle content transition
+        // Fade out current content
         Animated.parallel([
             Animated.timing(fadeAnim, {
                 toValue: 0,
@@ -210,23 +204,20 @@ const SafetyPostcardScreen = ({ navigation }) => {
                 useNativeDriver: true,
             }),
             Animated.timing(slideAnim, {
-                toValue: -20, // Slide slightly up when exiting
+                toValue: -20,
                 duration: 150,
                 useNativeDriver: true,
             }),
         ]).start(() => {
-            // Update step
+            // Update the step state
             setStep(nextStep);
 
             // Reset position for slide in animation
-            slideAnim.setValue(30); // Start from below
-
-            // Immediately restore opacity to 0 before animating in
+            slideAnim.setValue(30);
             fadeAnim.setValue(0);
 
-            // Small delay to ensure state has updated
+            // Small delay before fading in new content
             setTimeout(() => {
-                // Fade and slide in new content
                 Animated.parallel([
                     Animated.timing(fadeAnim, {
                         toValue: 1,
@@ -243,23 +234,30 @@ const SafetyPostcardScreen = ({ navigation }) => {
         });
     };
 
-    const goToNextStep = () => {
-        if (step === 1 && !selectedResource) {
-            Alert.alert('Selection Required', 'Please select a resource option');
-            return;
-        }
+    // Modified startPostcardFlow function
+    const startPostcardFlow = () => {
+        // First, set the postcard flow state to true
+        setInPostcardFlow(true);
 
-        if (step === 2 && !customMessage) {
+        // Then, after a small delay to let the progress bar initialize,
+        // animate to step 1
+        setTimeout(() => {
+            animateTransition(1);
+        }, 50);
+    };
+
+    const goToNextStep = () => {
+        if (step === 1 && !customMessage) {
             Alert.alert('Message Required', 'Please enter a message for your postcard');
             return;
         }
 
-        if (step === 4 && !selectedPostcardOption) {
+        if (step === 3 && !selectedPostcardOption) {
             Alert.alert('Selection Required', 'Please select a postcard type');
             return;
         }
 
-        if (step < 4) {
+        if (step < 3) {
             animateTransition(step + 1);
         } else {
             // Complete the process and share the postcard
@@ -275,6 +273,14 @@ const SafetyPostcardScreen = ({ navigation }) => {
     const goToPreviousStep = () => {
         if (step > 1) {
             animateTransition(step - 1);
+        } else if (step === 1) {
+            // If at step 1, go back to landing page
+            animateTransition(0);
+
+            // After a short delay to let animation finish, set inPostcardFlow to false
+            setTimeout(() => {
+                setInPostcardFlow(false);
+            }, 200);
         }
     };
 
@@ -319,34 +325,49 @@ const SafetyPostcardScreen = ({ navigation }) => {
         }
     };
 
-    // Render progress indicator
-    const renderProgressBar = () => (
-        <View style={onboardingStyles.progressContainer}>
-            <View style={onboardingStyles.progressBar}>
+    // Modified progress bar with fixed positioning and better transitions
+    const renderProgressBar = () => {
+        return (
+            <View style={[onboardingStyles.progressContainer]}>
                 <Animated.View
                     style={[
-                        onboardingStyles.progressFill,
+                        onboardingStyles.progressBar,
+                        { opacity: inPostcardFlow ? 1 : 0 } // Hide with opacity when not in flow
+                    ]}
+                >
+                    <Animated.View
+                        style={[
+                            onboardingStyles.progressFill,
+                            {
+                                width: progressAnim.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: ['0%', '100%']
+                                })
+                            }
+                        ]}
+                    />
+                </Animated.View>
+                <Text
+                    style={[
+                        onboardingStyles.stepText,
                         {
-                            width: progressAnim.interpolate({
-                                inputRange: [0, 1],
-                                outputRange: ['0%', '100%']
-                            })
+                            textAlign: 'right',
+                            opacity: inPostcardFlow ? 1 : 0 // Hide with opacity when not in flow
                         }
                     ]}
-                />
+                >
+                    Step {step} of 3
+                </Text>
             </View>
-            <Text style={[onboardingStyles.stepText, { textAlign: 'right' }]}>
-                Step {step} of 4
-            </Text>
-        </View>
-    );
+        );
+    };
 
-    // UPDATED: Render step 1 with Create a Postcard button between Postcards and Resources
-    const renderExamplePostcardStep = () => (
+    // Render landing page (not part of step flow)
+    const renderLandingPage = () => (
         <Animated.View
             style={[
                 onboardingStyles.stepContainer,
-                { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+                { opacity: fadeAnim, transform: [{ translateY: slideAnim }] } // Removed paddingTop: 30
             ]}
         >
             <Text style={onboardingStyles.headline}>Siren Relief</Text>
@@ -355,17 +376,17 @@ const SafetyPostcardScreen = ({ navigation }) => {
                 Support your community by sharing an update on what you need or how you can help.
             </Text>
 
-            {/* Create a Postcard button added here, between Postcards and Resources */}
+            {/* Create a Postcard button */}
             <TouchableOpacity
                 style={[onboardingStyles.continueButton, styles.createPostcardButton]}
-                onPress={goToNextStep}
+                onPress={startPostcardFlow}
             >
                 <Text style={onboardingStyles.continueButtonText}>
                     Create a Postcard
                 </Text>
             </TouchableOpacity>
 
-            {/* NEW Resources Section */}
+            {/* Resources Section */}
             <View style={styles.fieldContainer}>
                 <Text style={[typography.title, { marginTop: 24, marginBottom: 16 }]}>Resources</Text>
 
@@ -390,7 +411,7 @@ const SafetyPostcardScreen = ({ navigation }) => {
         </Animated.View>
     );
 
-    // Render step 2: Location and message with centered image
+    // Render step 1: Location and message with centered image
     const renderLocationMessageStep = () => (
         <Animated.View
             style={[
@@ -416,7 +437,7 @@ const SafetyPostcardScreen = ({ navigation }) => {
         </Animated.View>
     );
 
-    // NEW Step 3: Siren Badges
+    // Step 2: Siren Badges
     const renderSirenBadgesStep = () => (
         <Animated.View
             style={[
@@ -481,7 +502,7 @@ const SafetyPostcardScreen = ({ navigation }) => {
         </Animated.View>
     );
 
-    // NEW Step 4: Create a Postcard with selectable options
+    // Step 3: Create a Postcard with selectable options
     const renderCreatePostcardStep = () => (
         <Animated.View
             style={[
@@ -533,7 +554,6 @@ const SafetyPostcardScreen = ({ navigation }) => {
         </Animated.View>
     );
 
-
     if (isLoading) {
         return (
             <View style={styles.loadingContainer}>
@@ -552,7 +572,7 @@ const SafetyPostcardScreen = ({ navigation }) => {
             {/* Dismiss keyboard when tapping outside of TextInput */}
             <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
                 <View style={{ flex: 1 }}>
-                    {/* Progress bar - kept outside the ScrollView to ensure visibility */}
+                    {/* Progress bar - always rendered but with controlled opacity */}
                     <View style={{ paddingTop: Platform.OS === 'ios' ? 30 : 25 }}>
                         {renderProgressBar()}
                     </View>
@@ -565,10 +585,10 @@ const SafetyPostcardScreen = ({ navigation }) => {
                             contentContainerStyle={onboardingStyles.scrollViewContent}
                             keyboardShouldPersistTaps="handled"
                         >
-                            {step === 1 && renderExamplePostcardStep()}
-                            {step === 2 && renderLocationMessageStep()}
-                            {step === 3 && renderSirenBadgesStep()}
-                            {step === 4 && renderCreatePostcardStep()}
+                            {step === 0 && renderLandingPage()}
+                            {step === 1 && renderLocationMessageStep()}
+                            {step === 2 && renderSirenBadgesStep()}
+                            {step === 3 && renderCreatePostcardStep()}
 
                             {/* Add extra padding at the bottom to ensure scrolling works well */}
                             <View style={{ height: 80 }} />
@@ -580,14 +600,14 @@ const SafetyPostcardScreen = ({ navigation }) => {
             {/* Footer with continue button and back button - positioned absolutely */}
             <View style={[onboardingStyles.footer, {
                 position: 'absolute',
-                bottom:0,
+                bottom: 0,
                 left: 0,
                 right: 0,
                 borderTopWidth: 0,
                 paddingTop: 0,
             }]}>
-                {/* Back button (only shown on steps 2, 3, and 4) */}
-                {step > 1 && (
+                {/* Back button (only shown when in postcard flow) */}
+                {inPostcardFlow && (
                     <TouchableOpacity
                         style={{
                             alignItems: 'center',
@@ -607,18 +627,18 @@ const SafetyPostcardScreen = ({ navigation }) => {
                     </TouchableOpacity>
                 )}
 
-                {/* Continue button - Only show for steps 2, 3, and 4 */}
-                {step > 1 && (
+                {/* Continue button - Only show when in postcard flow */}
+                {inPostcardFlow && (
                     <TouchableOpacity
                         style={onboardingStyles.continueButton}
                         onPress={goToNextStep}
                         disabled={isProcessing}
                     >
-                        {isProcessing && step === 4 ? (
+                        {isProcessing && step === 3 ? (
                             <ActivityIndicator size="small" color="#fff" />
                         ) : (
                             <Text style={onboardingStyles.continueButtonText}>
-                                {step < 4 ? 'Continue' : 'Share Postcard'}
+                                {step < 3 ? 'Continue' : 'Share Postcard'}
                             </Text>
                         )}
                     </TouchableOpacity>
@@ -628,7 +648,7 @@ const SafetyPostcardScreen = ({ navigation }) => {
     );
 };
 
-// Add the styles that aren't in the onboardingStyles
+// Styles remain the same
 const styles = {
     loadingContainer: {
         flex: 1,
@@ -643,12 +663,10 @@ const styles = {
     fieldContainer: {
         width: '100%',
     },
-    // New style for Create a Postcard button
     createPostcardButton: {
         marginTop: 16,
         marginBottom: 16,
     },
-    // Updated styles for images
     exampleImageContainer: {
         alignItems: 'center',
         justifyContent: 'center',
@@ -658,8 +676,8 @@ const styles = {
     exampleImage: {
         width: '100%',
         height: undefined,
-        marginBottom:24,
-        aspectRatio: 1, // Adjust this value if needed to maintain proper aspect ratio
+        marginBottom: 24,
+        aspectRatio: 1,
     },
     exampleCaption: {
         textAlign: 'center',
@@ -668,7 +686,6 @@ const styles = {
         marginTop: 8,
         fontStyle: 'italic',
     },
-    // NEW Resource Button Styles
     resourceOptionsContainer: {
         flexDirection: 'column',
         marginBottom: 16,
@@ -709,7 +726,6 @@ const styles = {
         fontSize: 16,
         color: '#FF6F00',
     },
-    // Badge styles
     badgesContainer: {
         marginTop: 12,
         marginBottom: 16,
@@ -718,7 +734,7 @@ const styles = {
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: 8,
-        paddingVertical: 27, // Increased vertical padding
+        paddingVertical: 27,
     },
     separatorLine: {
         height: 1,
@@ -762,7 +778,6 @@ const styles = {
         fontWeight: 'bold',
         marginLeft: 4,
     },
-    // Postcard Option Styles
     sharingOptionsContainer: {
         marginTop: 16,
         marginBottom: 24,
@@ -856,18 +871,17 @@ const styles = {
         color: 'white',
         fontWeight: 'bold',
     },
-
     postcardOptionsContainer: {
         flexDirection: 'column',
         marginTop: 0,
     },
     postcardOption: {
         flexDirection: 'column',
-        padding: 12, // Reduced padding to make card smaller
-        borderRadius: 10, // Slightly reduced border radius
+        padding: 12,
+        borderRadius: 10,
         borderWidth: 1,
         borderColor: '#E0E0E0',
-        marginBottom: 14, // Reduced margin to make cards closer together
+        marginBottom: 14,
         backgroundColor: '#202020',
     },
     postcardOptionContent: {
@@ -876,27 +890,27 @@ const styles = {
     postcardOptionHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 6, // Reduced margin
+        marginBottom: 6,
     },
     postcardOptionIcon: {
-        width: 34, // Smaller icon
-        height: 34, // Smaller icon
-        borderRadius: 20, // Half the width
+        width: 34,
+        height: 34,
+        borderRadius: 20,
         justifyContent: 'center',
         alignItems: 'center',
-        marginRight: 12, // Reduced margin
+        marginRight: 12,
     },
     postcardOptionTitle: {
-        fontSize: 20, // Slightly smaller font
+        fontSize: 20,
         fontWeight: '400',
         color: '#FFFFFF',
     },
     postcardOptionMessage: {
-        fontSize: 12, // Smaller message text
-        fontFamily:'OpenSans',
+        fontSize: 12,
+        fontFamily: 'OpenSans',
         color: '#FFFFFF',
         marginTop: 0,
-        marginLeft: 0, // Removed left margin so text aligns with card edge
+        marginLeft: 0,
     },
 };
 

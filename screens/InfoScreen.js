@@ -520,7 +520,7 @@ const InfoScreen = ({ navigation, route, userProfile, updateUserProfile }) => {
                         centralized emergency information during disasters.
                     </Text>
                 </View>
-                
+
                 {/* Developer Tool - Reset Onboarding */}
                 <View style={styles.devSection}>
                     <Text style={styles.devTitle}>Developer Tools</Text>
