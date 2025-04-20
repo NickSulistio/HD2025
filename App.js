@@ -12,6 +12,7 @@ import LiveIncidentMapWithZones from './components/LiveIncidentMapWithZones';
 import SafetyPostcardScreen from './screens/SafetyPostcardScreen';
 import ResourceDirectoryScreen from './screens/ResourceDirectoryScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
+import SplashScreen from './screens/SplashScreen';
 import IncidentService from './components/IncidentService';
 import InfoScreen from './screens/InfoScreen';
 
@@ -26,9 +27,15 @@ export default function App() {
     const [error, setError] = useState(null);
     const [showOnboarding, setShowOnboarding] = useState(true);
     const [userProfile, setUserProfile] = useState(null);
+    const [showSplash, setShowSplash] = useState(true);
 
     const updateUserProfile = (newProfile) => {
         setUserProfile(newProfile);
+    };
+
+    // Handle splash screen completion
+    const handleSplashComplete = () => {
+        setShowSplash(false);
     };
 
     useEffect(() => {
@@ -75,6 +82,11 @@ export default function App() {
             console.error('Error saving onboarding data:', e);
         }
     };
+
+    // Show splash screen first, independent of other app states
+    if (showSplash) {
+        return <SplashScreen onComplete={handleSplashComplete} />;
+    }
 
     if (isLoading) {
         return (

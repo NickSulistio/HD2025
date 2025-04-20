@@ -25,7 +25,7 @@ const ResourceService = {
         return [
             {
                 id: 1,
-                name: "Davis Community Shelter",
+                name: "UC Davis ARC",
                 type: "shelter",
                 description: "Emergency shelter providing temporary housing and support services for individuals and families affected by floods and other disasters in Davis.",
                 latitude: 38.5449,
@@ -42,6 +42,23 @@ const ResourceService = {
             },
             {
                 id: 2,
+                name: "The Colleges at La Rue",
+                type: "shelter",
+                description: "Former apartment complex now serving as an emergency shelter for those displaced by disasters in the Davis area.",
+                latitude: 38.5382,
+                longitude: -121.7617,
+                services: [
+                    "Emergency housing",
+                    "Basic necessities",
+                    "Family accommodations",
+                    "Medical assistance"
+                ],
+                accessibility: true,
+                openNow: true,
+                distance: 1.8
+            },
+            {
+                id: 3,
                 name: "UC Davis Food Pantry",
                 type: "foodBank",
                 description: "Providing emergency food supplies to students and community members affected by emergencies in the Davis area.",
@@ -63,9 +80,9 @@ const ResourceService = {
         return [
             {
                 id: 1,
-                title: "Putah Creek Flood Relief Fund",
+                title: "Aggie Fire Relief Fund",
                 organizer: "Davis Community Foundation",
-                description: "Supporting families affected by the recent Putah Creek flooding in the Davis area.",
+                description: "Supporting families affected by recent fires in the Davis area.",
                 amountRaised: 42500,
                 goal: 75000,
                 donors: 318,
