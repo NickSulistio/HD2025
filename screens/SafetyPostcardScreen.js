@@ -957,7 +957,6 @@ const SafetyPostcardScreen = ({ navigation }) => {
         <KeyboardAvoidingView
             style={[onboardingStyles.container, { flex: 1 }]}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
         >
             {/* Dismiss keyboard when tapping outside of TextInput */}
             <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>

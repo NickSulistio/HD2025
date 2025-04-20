@@ -136,7 +136,7 @@ export default function App() {
                             if (route.name === 'Map') {
                                 iconName = focused ? 'map' : 'map-outline';
                             } else if (route.name === 'Resources') {
-                                iconName = focused ? 'medical' : 'medical-outline';
+                                iconName = focused ? 'book' : 'book-outline';
                             } else if (route.name === 'Safety') {
                                 iconName = focused ? 'bag-add' : 'bag-add-outline';
                             } else if (route.name === 'Info') {

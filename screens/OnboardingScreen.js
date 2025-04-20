@@ -253,7 +253,7 @@ const OnboardingScreen = ({ onComplete }) => {
                     placeholderTextColor="#888888"
                     keyboardType="numeric"
                     maxLength={5}
-                    returnKeyType="done"
+                    // returnKeyType="done"
                     onSubmitEditing={Keyboard.dismiss}
                     blurOnSubmit={true}
                 />
@@ -268,23 +268,26 @@ const OnboardingScreen = ({ onComplete }) => {
             <TouchableOpacity
                 style={[
                     onboardingStyles.locationButton,
-                    useCurrentLocation && onboardingStyles.locationButtonActive
+                    // Removed the conditional styling for active state
+                    {
+                        backgroundColor: '#FFFFFF',  // Always white background
+                    }
                 ]}
                 onPress={getCurrentLocation}
             >
                 {locationLoading ? (
-                    <ActivityIndicator size="small" color={useCurrentLocation ? "#000000" : "#FFFFFF"} />
+                    <ActivityIndicator size="small" color="#000000" />
                 ) : (
                     <>
                         <Ionicons
                             name="location"
                             size={22}
-                            color={useCurrentLocation ? "#000000" : "#FFFFFF"}
+                            color="#000000"  // Always dark icon
                         />
                         <Text
                             style={[
                                 onboardingStyles.locationButtonText,
-                                useCurrentLocation && onboardingStyles.locationButtonTextActive
+                                { color: '#000000' }  // Always dark text
                             ]}
                         >
                             Use My Current Location
@@ -461,9 +464,6 @@ const OnboardingScreen = ({ onComplete }) => {
                 </TouchableOpacity>
             </View>
 
-            <Text style={onboardingStyles.privacyNote}>
-                You can change your notification preferences at any time in Settings.
-            </Text>
         </Animated.View>
     );
 
@@ -471,7 +471,6 @@ const OnboardingScreen = ({ onComplete }) => {
         <KeyboardAvoidingView
             style={[onboardingStyles.container, { flex: 1 }]}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
         >
             {/* Dismiss keyboard when tapping outside of TextInput */}
             <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>

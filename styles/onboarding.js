@@ -338,8 +338,6 @@ export const onboardingStyles = StyleSheet.create({
 
     // Privacy note - updated for dark theme
     privacyNote: {
-        textAlign: 'center',
-        marginTop: spacing.medium,
         fontFamily: fonts.body,
         fontSize: fontSizes.bodySmall,
         color: colors.lightGray,
