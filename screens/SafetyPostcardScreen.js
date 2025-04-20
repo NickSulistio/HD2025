@@ -56,7 +56,7 @@ const SafetyPostcardScreen = ({ navigation }) => {
     // Animation refs
     const slideAnim = useRef(new Animated.Value(0)).current;
     const fadeAnim = useRef(new Animated.Value(1)).current;
-    const progressAnim = useRef(new Animated.Value(1/3)).current;
+    const progressAnim = useRef(new Animated.Value(1/4)).current; // Updated for 4 steps
 
     // Step 1: Choose status type
     const [selectedType, setSelectedType] = useState('safe'); // Default to 'safe' for the example
@@ -70,7 +70,10 @@ const SafetyPostcardScreen = ({ navigation }) => {
     const [useCurrentLocation, setUseCurrentLocation] = useState(false);
     const [locationLoading, setLocationLoading] = useState(false);
 
-    // Step 3: Sharing preferences
+    // Step 3: Badges (New)
+    const [selectedBadge, setSelectedBadge] = useState(null);
+
+    // Step 4: Sharing preferences (formerly Step 3)
     const [incidents, setIncidents] = useState(null);
     const [includeIncidents, setIncludeIncidents] = useState(true);
     const [includeVulnerableInfo, setIncludeVulnerableInfo] = useState(true);
@@ -95,7 +98,7 @@ const SafetyPostcardScreen = ({ navigation }) => {
     useEffect(() => {
         slideAnim.setValue(0);
         fadeAnim.setValue(1);
-        progressAnim.setValue(0.33); // Set initial progress (1/3 for step 1)
+        progressAnim.setValue(0.25); // Set initial progress (1/4 for step 1)
     }, []);
 
     const loadLocationAndData = async () => {
@@ -168,7 +171,7 @@ const SafetyPostcardScreen = ({ navigation }) => {
     // Animation for smooth transitions between steps
     const animateTransition = (nextStep) => {
         // Calculate the new progress value
-        const newProgressValue = nextStep / 3;
+        const newProgressValue = nextStep / 4; // Updated for 4 steps
 
         // First animate the progress bar separately
         Animated.timing(progressAnim, {
@@ -230,7 +233,7 @@ const SafetyPostcardScreen = ({ navigation }) => {
             return;
         }
 
-        if (step < 3) {
+        if (step < 4) { // Updated for 4 steps
             animateTransition(step + 1);
         } else {
             // Complete the process and share the postcard
@@ -307,7 +310,7 @@ const SafetyPostcardScreen = ({ navigation }) => {
                 />
             </View>
             <Text style={[onboardingStyles.stepText, { textAlign: 'right' }]}>
-                Step {step} of 3
+                Step {step} of 4 {/* Updated for 4 steps */}
             </Text>
         </View>
     );
@@ -363,18 +366,80 @@ const SafetyPostcardScreen = ({ navigation }) => {
             </View>
 
             {/* Headline and body text below the image */}
-            <Text style={{...onboardingStyles.headline, marginBottom: 16}}>
+            <Text style={{...onboardingStyles.headline, paddingTop:16, marginBottom: 8}}>
                 Postcards
             </Text>
-            <Text style={{...typography.bodyLarge, marginBottom: 24}}>
-                Support your community by sharing an update on what you need or how you can help.
-            </Text>
-
-
+            <Text style={{...typography.bodyMedium, marginBottom: 24}}>
+                Siren will generate a shareable postcard based on your specific situation, whether you're seeking assistance or offering support.</Text>
         </Animated.View>
     );
 
-    // Render step 3: Preview and Share
+    // NEW Step 3: Siren Badges
+    const renderSirenBadgesStep = () => (
+        <Animated.View
+            style={[
+                onboardingStyles.stepContainer,
+                { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
+            ]}
+        >
+            <Text style={onboardingStyles.headline}>Siren Badges</Text>
+
+            {/* Example badges selection */}
+            <View style={styles.badgesContainer}>
+                <View style={styles.badgeRow}>
+                    <Image
+                        source={require('../assets/red_badge.png')}
+                        style={styles.badgeIcon}
+                        resizeMode="contain"
+                    />
+                    <Text style={{...typography.bodyMedium, flex: 1}}>
+                        Red badges indicate high priority alerts such as areas of danger and missing people or pets
+                    </Text>
+                </View>
+
+                <View style={styles.separatorLine} />
+
+                <View style={styles.badgeRow}>
+                    <Image
+                        source={require('../assets/green_badge.png')}
+                        style={styles.badgeIcon}
+                        resizeMode="contain"
+                    />
+                    <Text style={{...typography.bodyMedium, flex: 1}}>
+                        Green badges let friends and family know you're safe
+                    </Text>
+                </View>
+
+                <View style={styles.separatorLine} />
+
+                <View style={styles.badgeRow}>
+                    <Image
+                        source={require('../assets/purple_badge.png')}
+                        style={styles.badgeIcon}
+                        resizeMode="contain"
+                    />
+                    <Text style={{...typography.bodyMedium, flex: 1}}>
+                        Purple badges help identify underserved communities
+                    </Text>
+                </View>
+
+                <View style={styles.separatorLine} />
+
+                <View style={styles.badgeRow}>
+                    <Image
+                        source={require('../assets/yellow_badge.png')}
+                        style={styles.badgeIcon}
+                        resizeMode="contain"
+                    />
+                    <Text style={{...typography.bodyMedium, flex: 1}}>
+                        Special Badges are earned when you help out your community
+                    </Text>
+                </View>
+            </View>
+        </Animated.View>
+    );
+
+    // Render step 4: Preview and Share (formerly step 3)
     const renderPreviewShareStep = () => (
         <Animated.View
             style={[
@@ -439,6 +504,23 @@ const SafetyPostcardScreen = ({ navigation }) => {
                                     { color: POSTCARD_TYPES.find(t => t.id === selectedType).color }
                                 ]}>
                                     {POSTCARD_TYPES.find(t => t.id === selectedType).title}
+                                </Text>
+                            </View>
+                        )}
+
+                        {/* Display selected badge if any */}
+                        {selectedBadge && (
+                            <View style={styles.selectedBadgeContainer}>
+                                <Ionicons
+                                    name={POSTCARD_TYPES.find(t => t.id === selectedBadge).icon}
+                                    size={20}
+                                    color={POSTCARD_TYPES.find(t => t.id === selectedBadge).color}
+                                />
+                                <Text style={[
+                                    styles.selectedBadgeText,
+                                    { color: POSTCARD_TYPES.find(t => t.id === selectedBadge).color }
+                                ]}>
+                                    {POSTCARD_TYPES.find(t => t.id === selectedBadge).title}
                                 </Text>
                             </View>
                         )}
@@ -511,7 +593,8 @@ const SafetyPostcardScreen = ({ navigation }) => {
                         >
                             {step === 1 && renderExamplePostcardStep()}
                             {step === 2 && renderLocationMessageStep()}
-                            {step === 3 && renderPreviewShareStep()}
+                            {step === 3 && renderSirenBadgesStep()}
+                            {step === 4 && renderPreviewShareStep()}
 
                             {/* Add extra padding at the bottom to ensure scrolling works well */}
                             <View style={{ height: 80 }} />
@@ -523,13 +606,13 @@ const SafetyPostcardScreen = ({ navigation }) => {
             {/* Footer with continue button and back button - positioned absolutely */}
             <View style={[onboardingStyles.footer, {
                 position: 'absolute',
-                bottom: 20,
+                bottom:0,
                 left: 0,
                 right: 0,
                 borderTopWidth: 0,
                 paddingTop: 0,
             }]}>
-                {/* Back button (only shown on steps 2 and 3) */}
+                {/* Back button (only shown on steps 2, 3, and 4) */}
                 {step > 1 && (
                     <TouchableOpacity
                         style={{
@@ -556,11 +639,11 @@ const SafetyPostcardScreen = ({ navigation }) => {
                     onPress={goToNextStep}
                     disabled={isProcessing}
                 >
-                    {isProcessing && step === 3 ? (
+                    {isProcessing && step === 4 ? (
                         <ActivityIndicator size="small" color="#fff" />
                     ) : (
                         <Text style={onboardingStyles.continueButtonText}>
-                            {step < 3 ? 'Continue' : 'Share Postcard'}
+                            {step < 4 ? 'Continue' : 'Share Postcard'}
                         </Text>
                     )}
                 </TouchableOpacity>
@@ -615,6 +698,59 @@ const styles = {
         marginLeft: 12,
         fontSize: 16,
         color: '#FF6F00',
+    },
+    // New Badge styles
+    badgesContainer: {
+        marginTop: 12,
+        marginBottom: 16,
+    },
+    badgeRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
+        paddingVertical: 27, // Increased vertical padding
+    },
+    separatorLine: {
+        height: 1,
+        backgroundColor: '#E0E0E0',
+        marginHorizontal: 8,
+    },
+    badgeIcon: {
+        width: 48,
+        height: 48,
+        marginRight: 16,
+    },
+    badgeOption: {
+        padding: 16,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#E0E0E0',
+        marginBottom: 16,
+        backgroundColor: '#F9F9F9',
+    },
+    badgeTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginTop: 8,
+        marginBottom: 4,
+    },
+    badgeDescription: {
+        fontSize: 14,
+        color: '#666',
+    },
+    selectedBadgeContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 8,
+        padding: 6,
+        borderRadius: 16,
+        backgroundColor: '#F5F5F5',
+    },
+    selectedBadgeText: {
+        fontSize: 14,
+        fontWeight: 'bold',
+        marginLeft: 4,
     },
     postcardContainer: {
         alignItems: 'center',
