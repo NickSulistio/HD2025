@@ -1,4 +1,4 @@
-// SafetyPostcardScreen.js - Updated with Personal Info Step
+// SafetyPostcardScreen.js - Updated with Personal Info Step and Expo Screenshot
 import React, { useState, useEffect, useRef } from 'react';
 import {
     View,
@@ -21,6 +21,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+import * as MediaLibrary from 'expo-media-library';
+import { captureRef } from 'react-native-view-shot';
 import IncidentService from '../components/IncidentService';
 
 // Import the styles from onboarding - assuming they're in a shared location
@@ -66,10 +69,25 @@ const RESOURCES_OPTIONS = [
 
 const SafetyPostcardScreen = ({ navigation }) => {
     const scrollViewRef = useRef(null);
+    const postcardRef = useRef(null);
     const [inPostcardFlow, setInPostcardFlow] = useState(false);
     const [step, setStep] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
     const [isProcessing, setIsProcessing] = useState(false);
+
+    // Check for media library permissions when the component mounts
+    useEffect(() => {
+        (async () => {
+            const { status } = await MediaLibrary.requestPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert(
+                    'Permission Required',
+                    'We need permission to save screenshots to your device.',
+                    [{ text: 'OK' }]
+                );
+            }
+        })();
+    }, []);
 
     // Animation refs
     const slideAnim = useRef(new Animated.Value(0)).current;
@@ -92,7 +110,7 @@ const SafetyPostcardScreen = ({ navigation }) => {
     // Step 3: Create a Postcard
     const [selectedPostcardOption, setSelectedPostcardOption] = useState(null);
 
-    // Step 4: Siren Badges (NEW STEP)
+    // Step 4: Siren Badges
     const [selectedSirenBadges, setSelectedSirenBadges] = useState([]);
 
     // Step 5: Personal Information (moved to step 5)
@@ -335,36 +353,77 @@ const SafetyPostcardScreen = ({ navigation }) => {
         }, 50);
     };
 
-    // Simplified sharePostcard function that doesn't use react-native-view-shot
-    const simpleSharePostcard = () => {
+    // Updated sharePostcard function using react-native-view-shot and expo-media-library
+    const sharePostcard = async () => {
         setIsProcessing(true);
 
         try {
-            // Create a simple text message to share
-            const message =
-                `Siren Relief Postcard from ${userName}\n\n` +
-                `${personalNote || customMessage}\n\n` +
-                (locationName ? `Location: ${locationName}\n` : '') +
-                (shareZipCode && zipCode ? `ZIP: ${zipCode}\n` : '') +
-                `Created with Siren Relief App`;
+            // Check if postcardRef is available
+            if (!postcardRef.current) {
+                throw new Error('Postcard reference not available');
+            }
 
-            // Use the basic Share API
-            Share.share({
-                message: message,
-                title: 'Siren Relief Postcard'
-            }).then(result => {
-                if (result.action === Share.sharedAction) {
-                    // Show success message
-                    Alert.alert(
-                        'Postcard Shared',
-                        'Your safety postcard has been shared successfully!',
-                        [{ text: 'OK', onPress: () => navigation.navigate('Map') }]
-                    );
-                }
+            // Request permissions first (we already do this on component mount, but double-check)
+            const { status } = await MediaLibrary.requestPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert(
+                    'Permission Required',
+                    'We need permission to save screenshots to your device.'
+                );
+                setIsProcessing(false);
+                return;
+            }
+
+            // Capture the screenshot of just the postcard component
+            const localUri = await captureRef(postcardRef, {
+                quality: 1,
+                format: 'jpg',
             });
+
+            // Save to media library
+            await MediaLibrary.saveToLibraryAsync(localUri);
+
+            // Share the captured image
+            const result = await Share.share({
+                url: localUri, // iOS
+                message: 'Check out my Siren Relief Postcard!', // Android (and iOS fallback)
+                title: 'Siren Relief Postcard'
+            });
+
+            if (result.action === Share.sharedAction) {
+                // Show success message
+                Alert.alert(
+                    'Postcard Shared',
+                    'Your safety postcard has been shared successfully!',
+                    [{ text: 'OK', onPress: () => navigation.navigate('Map') }]
+                );
+            }
         } catch (error) {
             console.error('Error sharing postcard:', error);
-            Alert.alert('Sharing Error', 'Unable to share your safety postcard. Please try again.');
+
+            // Fallback to text sharing if screenshot fails
+            try {
+                const message =
+                    `Siren Relief Postcard from ${userName}\n\n` +
+                    `${personalNote || customMessage}\n\n` +
+                    (locationName ? `Location: ${locationName}\n` : '') +
+                    (shareZipCode && zipCode ? `ZIP: ${zipCode}\n` : '') +
+                    `Created with Siren Relief App`;
+
+                await Share.share({
+                    message: message,
+                    title: 'Siren Relief Postcard'
+                });
+
+                Alert.alert(
+                    'Postcard Shared',
+                    'Your safety postcard has been shared successfully!',
+                    [{ text: 'OK', onPress: () => navigation.navigate('Map') }]
+                );
+            } catch (fallbackError) {
+                console.error('Error with fallback sharing:', fallbackError);
+                Alert.alert('Sharing Error', 'Unable to share your safety postcard. Please try again.');
+            }
         } finally {
             setIsProcessing(false);
         }
@@ -387,14 +446,11 @@ const SafetyPostcardScreen = ({ navigation }) => {
             return;
         }
 
-        // If we're at step 5, proceed to the postcard display step (6)
-        // instead of immediately sharing
+        // For all steps except step 6
         if (step < 6) {
             animateTransition(step + 1);
-        } else {
-            // Only when we're at step 6, we actually share the postcard
-            simpleSharePostcard();
         }
+        // For step 6, we'll use the sharePostcard function in the footer button
 
         // Scroll to top after step change
         if (scrollViewRef.current) {
@@ -803,13 +859,11 @@ const SafetyPostcardScreen = ({ navigation }) => {
                         </View>
                     )}
                 </View>
-
-                {/* Removed the hidden reference for capturing as we're no longer using react-native-view-shot */}
             </Animated.View>
         );
     };
 
-    // Step 6: Generated Postcard Display (NEW STEP)
+    // Step 6: Generated Postcard Display (Using ViewShot capture)
     const renderGeneratedPostcardStep = () => {
         return (
             <Animated.View
@@ -821,9 +875,13 @@ const SafetyPostcardScreen = ({ navigation }) => {
                 {/* Display user's name as headline */}
                 <Text style={onboardingStyles.headline}>{userName}</Text>
 
-                {/* The Generated Postcard */}
+                {/* The Generated Postcard - Using View with ref for captureRef */}
                 <View style={styles.generatedPostcardContainer}>
-                    <View style={styles.generatedPostcard}>
+                    <View
+                        ref={postcardRef}
+                        collapsable={false}
+                        style={styles.generatedPostcard}
+                    >
                         {/* Postcard Header */}
                         <View style={styles.generatedPostcardHeader}>
                             <Text style={styles.generatedPostcardTitle}>Siren Postcard</Text>
@@ -880,20 +938,11 @@ const SafetyPostcardScreen = ({ navigation }) => {
                             )}
                         </View>
                     </View>
-
-                    {/* Share Button */}
-                    <TouchableOpacity
-                        style={styles.shareButton}
-                        onPress={simpleSharePostcard}
-                    >
-                        <Ionicons name="share-outline" size={20} color="#FFFFFF" />
-                        <Text style={styles.shareButtonText}>Share Postcard</Text>
-                    </TouchableOpacity>
                 </View>
+
             </Animated.View>
         );
     };
-
 
     if (isLoading) {
         return (
@@ -973,19 +1022,28 @@ const SafetyPostcardScreen = ({ navigation }) => {
                     </TouchableOpacity>
                 )}
 
-                {/* Continue button - Only show when in postcard flow */}
+                {/* Continue button for steps 1-5 / Share button for step 6 */}
                 {inPostcardFlow && (
                     <TouchableOpacity
-                        style={onboardingStyles.continueButton}
-                        onPress={goToNextStep}
+                        style={[
+                            onboardingStyles.continueButton,
+                            step === 6 && styles.sharePostcardButton
+                        ]}
+                        onPress={step < 6 ? goToNextStep : sharePostcard}
                         disabled={isProcessing}
                     >
-                        {isProcessing && step === 6 ? (
+                        {isProcessing ? (
                             <ActivityIndicator size="small" color="#fff" />
                         ) : (
-                            <Text style={onboardingStyles.continueButtonText}>
-                                {step < 6 ? 'Continue' : 'Share Postcard'}
-                            </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                                {step === 6 && <Ionicons name="share-outline" size={22} color="#FFFFFF" style={{ marginRight: 8 }} />}
+                                <Text style={[
+                                    onboardingStyles.continueButtonText,
+                                    step < 6 ? {} : { color: 'white' }
+                                ]}>
+                                    {step < 6 ? 'Continue' : 'Share Postcard'}
+                                </Text>
+                            </View>
                         )}
                     </TouchableOpacity>
                 )}
@@ -1402,9 +1460,9 @@ const styles = {
     generatedPostcardImage: {
         width: '100%',
         height: 250,
-        borderRadius: 8, // Adds curved corners (8px radius)
-        paddingLeft: 16,     // Adds 16px padding on all sides
-        paddingRight: 16,     // Adds 16px padding on all sides
+        borderRadius: 10,
+        paddingRight: 16,
+        paddingLeft: 16
     },
     generatedPostcardContent: {
         padding: 20,
@@ -1480,16 +1538,9 @@ const styles = {
         fontWeight: '500',
         color: 'white',
     },
-    shareButton: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#4CAF50',
-        borderRadius: 8,
-        paddingVertical: 12,
-        paddingHorizontal: 24,
-        marginTop: 20,
-        width: '100%',
+    // New share button style
+    sharePostcardButton: {
+        backgroundColor: '#4CAF50', // Green color
     },
     shareButtonText: {
         color: 'white',
