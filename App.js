@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, ActivityIndicator, Animated } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,12 +29,23 @@ export default function App() {
     const [userProfile, setUserProfile] = useState(null);
     const [showSplash, setShowSplash] = useState(true);
 
+    // Add fade animation for onboarding
+    const onboardingOpacity = useRef(new Animated.Value(0)).current;
+
     const updateUserProfile = (newProfile) => {
         setUserProfile(newProfile);
     };
 
     // Handle splash screen completion
     const handleSplashComplete = () => {
+        // Start fading in the onboarding screen
+        Animated.timing(onboardingOpacity, {
+            toValue: 1,
+            duration: 500, // Match the duration in SplashScreen fade out
+            useNativeDriver: true,
+        }).start();
+
+        // Remove splash screen from DOM
         setShowSplash(false);
     };
 
@@ -107,7 +118,11 @@ export default function App() {
     }
 
     if (showOnboarding) {
-        return <OnboardingScreen onComplete={handleOnboardingComplete} />;
+        return (
+            <Animated.View style={{ flex: 1, opacity: onboardingOpacity }}>
+                <OnboardingScreen onComplete={handleOnboardingComplete} />
+            </Animated.View>
+        );
     }
 
     return (

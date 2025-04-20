@@ -27,7 +27,7 @@ const SplashScreen = ({ onComplete }) => {
             // Step 1: Fade in the text
             Animated.timing(textOpacity, {
                 toValue: 1,
-                duration: 500,
+                duration: 1000,
                 easing: Easing.out(Easing.ease),
                 useNativeDriver: true,
             }),
@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
     },
     appName: {
         color: colors.white,
-        fontSize: 56,
+        fontSize: 46,
         letterSpacing: 2,
         textAlign: 'center',
         ...Platform.select({
