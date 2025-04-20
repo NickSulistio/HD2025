@@ -279,12 +279,12 @@ const styles = StyleSheet.create({
     },
     tabText: {
         fontSize: 16,
-        fontWeight: '500',
+        fontWeight: '400',
         color: '#6c757d',
     },
     activeTabText: {
         color: '#007AFF',
-        fontWeight: 'bold',
+        fontWeight: '400',
     },
     section: {
         marginBottom: 14, // Reduced spacing between cards to 14
@@ -299,7 +299,7 @@ const styles = StyleSheet.create({
     },
     sectionTitle: {
         fontSize: 18,
-        fontWeight: 'bold',
+        fontWeight: '400',
         color: '#FFFFFF',
         marginLeft: 8, // Equivalent to spacing.small
         flex: 1,
