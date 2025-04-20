@@ -341,7 +341,7 @@ const SafetyPostcardScreen = ({ navigation }) => {
         </View>
     );
 
-    // UPDATED: Render step 1 with Resources title and buttons
+    // UPDATED: Render step 1 with Create a Postcard button between Postcards and Resources
     const renderExamplePostcardStep = () => (
         <Animated.View
             style={[
@@ -354,6 +354,16 @@ const SafetyPostcardScreen = ({ navigation }) => {
             <Text style={{...typography.bodyMedium, marginBottom:16}}>
                 Support your community by sharing an update on what you need or how you can help.
             </Text>
+
+            {/* Create a Postcard button added here, between Postcards and Resources */}
+            <TouchableOpacity
+                style={[onboardingStyles.continueButton, styles.createPostcardButton]}
+                onPress={goToNextStep}
+            >
+                <Text style={onboardingStyles.continueButtonText}>
+                    Create a Postcard
+                </Text>
+            </TouchableOpacity>
 
             {/* NEW Resources Section */}
             <View style={styles.fieldContainer}>
@@ -597,20 +607,22 @@ const SafetyPostcardScreen = ({ navigation }) => {
                     </TouchableOpacity>
                 )}
 
-                {/* Continue button */}
-                <TouchableOpacity
-                    style={onboardingStyles.continueButton}
-                    onPress={goToNextStep}
-                    disabled={isProcessing}
-                >
-                    {isProcessing && step === 4 ? (
-                        <ActivityIndicator size="small" color="#fff" />
-                    ) : (
-                        <Text style={onboardingStyles.continueButtonText}>
-                            {step < 4 ? 'Continue' : 'Share Postcard'}
-                        </Text>
-                    )}
-                </TouchableOpacity>
+                {/* Continue button - Only show for steps 2, 3, and 4 */}
+                {step > 1 && (
+                    <TouchableOpacity
+                        style={onboardingStyles.continueButton}
+                        onPress={goToNextStep}
+                        disabled={isProcessing}
+                    >
+                        {isProcessing && step === 4 ? (
+                            <ActivityIndicator size="small" color="#fff" />
+                        ) : (
+                            <Text style={onboardingStyles.continueButtonText}>
+                                {step < 4 ? 'Continue' : 'Share Postcard'}
+                            </Text>
+                        )}
+                    </TouchableOpacity>
+                )}
             </View>
         </KeyboardAvoidingView>
     );
@@ -631,6 +643,11 @@ const styles = {
     fieldContainer: {
         width: '100%',
     },
+    // New style for Create a Postcard button
+    createPostcardButton: {
+        marginTop: 16,
+        marginBottom: 16,
+    },
     // Updated styles for images
     exampleImageContainer: {
         alignItems: 'center',
@@ -641,6 +658,7 @@ const styles = {
     exampleImage: {
         width: '100%',
         height: undefined,
+        marginBottom:24,
         aspectRatio: 1, // Adjust this value if needed to maintain proper aspect ratio
     },
     exampleCaption: {
@@ -673,7 +691,7 @@ const styles = {
     },
     resourceButtonText: {
         fontSize: 18,
-        fontWeight: '500',
+        fontWeight: '400',
     },
     vulnerableBanner: {
         flexDirection: 'row',

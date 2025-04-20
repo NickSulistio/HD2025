@@ -332,7 +332,7 @@ export const onboardingStyles = StyleSheet.create({
     continueButtonText: {
         fontFamily: fonts.body,
         fontSize: fontSizes.bodyMedium,
-        fontWeight: 'bold',
+        fontWeight: 'semibold',
         color: colors.black,
     },
 

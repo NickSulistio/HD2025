@@ -1,4 +1,4 @@
-// InfoScreen.js
+// InfoScreen.js with updated edit buttons and card spacing
 import React, { useState } from 'react';
 import {
     StyleSheet,
@@ -17,6 +17,8 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
+import { colors, spacing, borderRadius, shadows } from '../styles';
+import { text } from '../styles/typography';
 
 const InfoScreen = ({ navigation, route, userProfile, updateUserProfile }) => {
     const [editedProfile, setEditedProfile] = useState(userProfile || {});
@@ -212,6 +214,7 @@ const InfoScreen = ({ navigation, route, userProfile, updateUserProfile }) => {
                                 value={tempZipCode}
                                 onChangeText={setTempZipCode}
                                 placeholder="Enter your ZIP code"
+                                placeholderTextColor="#999999"
                                 keyboardType="numeric"
                                 maxLength={5}
                                 editable={!useCurrentLocation}
@@ -234,7 +237,7 @@ const InfoScreen = ({ navigation, route, userProfile, updateUserProfile }) => {
                             <Ionicons
                                 name="location"
                                 size={22}
-                                color={useCurrentLocation ? "#FFFFFF" : "#007AFF"}
+                                color={useCurrentLocation ? colors.white : colors.white}
                             />
                             <Text
                                 style={[
@@ -248,7 +251,7 @@ const InfoScreen = ({ navigation, route, userProfile, updateUserProfile }) => {
 
                         {useCurrentLocation && editedProfile?.location?.address && (
                             <View style={styles.locationConfirmation}>
-                                <Ionicons name="checkmark-circle" size={20} color="#4CD964" />
+                                <Ionicons name="checkmark-circle" size={20} color={colors.success} />
                                 <Text style={styles.locationConfirmationText}>
                                     Location detected: {editedProfile.location.address.city || ''},
                                     {editedProfile.location.address.region || ''} {editedProfile.location.address.postalCode || ''}
@@ -270,7 +273,7 @@ const InfoScreen = ({ navigation, route, userProfile, updateUserProfile }) => {
                                     style={styles.counterButton}
                                     onPress={() => setHouseholdSize(Math.max(1, householdSize - 1))}
                                 >
-                                    <Ionicons name="remove" size={22} color="#007AFF" />
+                                    <Ionicons name="remove" size={22} color={colors.white} />
                                 </TouchableOpacity>
 
                                 <Text style={styles.counterText}>{householdSize}</Text>
@@ -279,7 +282,7 @@ const InfoScreen = ({ navigation, route, userProfile, updateUserProfile }) => {
                                     style={styles.counterButton}
                                     onPress={() => setHouseholdSize(householdSize + 1)}
                                 >
-                                    <Ionicons name="add" size={22} color="#007AFF" />
+                                    <Ionicons name="add" size={22} color={colors.white} />
                                 </TouchableOpacity>
                             </View>
                         </View>
@@ -289,8 +292,8 @@ const InfoScreen = ({ navigation, route, userProfile, updateUserProfile }) => {
                             <Switch
                                 value={hasPets}
                                 onValueChange={setHasPets}
-                                trackColor={{ false: '#E0E0E0', true: '#BFDEFF' }}
-                                thumbColor={hasPets ? '#007AFF' : '#F4F4F4'}
+                                trackColor={{ false: '#555555', true: colors.primaryLight }}
+                                thumbColor={hasPets ? colors.primary : '#F4F4F4'}
                             />
                         </View>
 
@@ -299,8 +302,8 @@ const InfoScreen = ({ navigation, route, userProfile, updateUserProfile }) => {
                             <Switch
                                 value={accessibilityNeeds}
                                 onValueChange={setAccessibilityNeeds}
-                                trackColor={{ false: '#E0E0E0', true: '#BFDEFF' }}
-                                thumbColor={accessibilityNeeds ? '#007AFF' : '#F4F4F4'}
+                                trackColor={{ false: '#555555', true: colors.primaryLight }}
+                                thumbColor={accessibilityNeeds ? colors.primary : '#F4F4F4'}
                             />
                         </View>
 
@@ -312,6 +315,7 @@ const InfoScreen = ({ navigation, route, userProfile, updateUserProfile }) => {
                                     value={accessibilityDetails}
                                     onChangeText={setAccessibilityDetails}
                                     placeholder="E.g., mobility assistance, medical equipment, etc."
+                                    placeholderTextColor="#999999"
                                     multiline={true}
                                     numberOfLines={3}
                                 />
@@ -337,7 +341,7 @@ const InfoScreen = ({ navigation, route, userProfile, updateUserProfile }) => {
                                     <Ionicons
                                         name="notifications"
                                         size={32}
-                                        color={allowNotifications ? "#007AFF" : "#666666"}
+                                        color={allowNotifications ? colors.primary : "#666666"}
                                     />
                                     <Text style={[
                                         styles.notificationTitle,
@@ -371,7 +375,7 @@ const InfoScreen = ({ navigation, route, userProfile, updateUserProfile }) => {
                                     <Ionicons
                                         name="notifications-off"
                                         size={32}
-                                        color={!allowNotifications ? "#007AFF" : "#666666"}
+                                        color={!allowNotifications ? colors.primary : "#666666"}
                                     />
                                     <Text style={[
                                         styles.notificationTitle,
@@ -414,14 +418,13 @@ const InfoScreen = ({ navigation, route, userProfile, updateUserProfile }) => {
                 {/* Location Section */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
-                        <Ionicons name="location" size={24} color="#007AFF" />
+                        <Ionicons name="location" size={24} color={colors.white} />
                         <Text style={styles.sectionTitle}>Location</Text>
                         <TouchableOpacity
                             style={styles.editButton}
                             onPress={() => openEditModal('location')}
                         >
-                            <Ionicons name="pencil" size={18} color="#007AFF" />
-                            <Text style={styles.editButtonText}>Edit</Text>
+                            <Ionicons name="pencil-outline" size={20} color={colors.white} />
                         </TouchableOpacity>
                     </View>
                     <Text style={styles.sectionContent}>
@@ -433,14 +436,13 @@ const InfoScreen = ({ navigation, route, userProfile, updateUserProfile }) => {
                 {editedProfile && editedProfile.household && (
                     <View style={styles.section}>
                         <View style={styles.sectionHeader}>
-                            <Ionicons name="people" size={24} color="#007AFF" />
+                            <Ionicons name="people" size={24} color={colors.white} />
                             <Text style={styles.sectionTitle}>Household Information</Text>
                             <TouchableOpacity
                                 style={styles.editButton}
                                 onPress={() => openEditModal('household')}
                             >
-                                <Ionicons name="pencil" size={18} color="#007AFF" />
-                                <Text style={styles.editButtonText}>Edit</Text>
+                                <Ionicons name="pencil-outline" size={20} color={colors.white} />
                             </TouchableOpacity>
                         </View>
                         <View style={styles.infoRow}>
@@ -475,15 +477,14 @@ const InfoScreen = ({ navigation, route, userProfile, updateUserProfile }) => {
                             <Ionicons
                                 name={editedProfile.notifications ? "notifications" : "notifications-off"}
                                 size={24}
-                                color="#007AFF"
+                                color={colors.white}
                             />
                             <Text style={styles.sectionTitle}>Notifications</Text>
                             <TouchableOpacity
                                 style={styles.editButton}
                                 onPress={() => openEditModal('notifications')}
                             >
-                                <Ionicons name="pencil" size={18} color="#007AFF" />
-                                <Text style={styles.editButtonText}>Edit</Text>
+                                <Ionicons name="pencil-outline" size={20} color={colors.white} />
                             </TouchableOpacity>
                         </View>
                         <Text style={styles.sectionContent}>
@@ -494,23 +495,10 @@ const InfoScreen = ({ navigation, route, userProfile, updateUserProfile }) => {
                     </View>
                 )}
 
-                {/* App Info Section */}
-                <View style={styles.section}>
-                    <View style={styles.sectionHeader}>
-                        <Ionicons name="information-circle" size={24} color="#007AFF" />
-                        <Text style={styles.sectionTitle}>About This App</Text>
-                    </View>
-                    <Text style={styles.sectionContent}>
-                        This app provides real-time information about active emergencies including fires, floods,
-                        earthquakes, evacuation zones, and relief centers. It was inspired by the need for
-                        centralized emergency information during disasters.
-                    </Text>
-                </View>
-
                 {/* Emergency Contacts */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
-                        <Ionicons name="call" size={24} color="#007AFF" />
+                        <Ionicons name="call" size={24} color={colors.white} />
                         <Text style={styles.sectionTitle}>Emergency Contacts</Text>
                     </View>
                     <Text style={styles.sectionContent}>
@@ -520,6 +508,19 @@ const InfoScreen = ({ navigation, route, userProfile, updateUserProfile }) => {
                     </Text>
                 </View>
 
+                {/* App Info Section */}
+                <View style={styles.section}>
+                    <View style={styles.sectionHeader}>
+                        <Ionicons name="information-circle" size={24} color={colors.white} />
+                        <Text style={styles.sectionTitle}>About This App</Text>
+                    </View>
+                    <Text style={styles.sectionContent}>
+                        This app provides real-time information about active emergencies including fires, floods,
+                        earthquakes, evacuation zones, and relief centers. It was inspired by the need for
+                        centralized emergency information during disasters.
+                    </Text>
+                </View>
+                
                 {/* Developer Tool - Reset Onboarding */}
                 <View style={styles.devSection}>
                     <Text style={styles.devTitle}>Developer Tools</Text>
@@ -527,7 +528,7 @@ const InfoScreen = ({ navigation, route, userProfile, updateUserProfile }) => {
                         style={styles.resetButton}
                         onPress={resetOnboarding}
                     >
-                        <Ionicons name="refresh" size={20} color="#FFFFFF" />
+                        <Ionicons name="refresh" size={20} color={colors.white} />
                         <Text style={styles.resetButtonText}>Reset Onboarding</Text>
                     </TouchableOpacity>
                 </View>
@@ -578,187 +579,178 @@ const InfoScreen = ({ navigation, route, userProfile, updateUserProfile }) => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#F8F8F8',
+        backgroundColor: '#000000', // Black background
     },
     scrollContent: {
-        padding: 16,
+        padding: spacing.medium,
     },
     title: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        marginBottom: 20,
-        textAlign: 'center',
+        ...text.display,
+        color: colors.white,
+        marginBottom: spacing.large,
+        fontWeight: 400,
+        fontSize: 28
     },
     section: {
-        marginBottom: 20,
-        backgroundColor: '#FFFFFF',
-        padding: 16,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#EEEEEE',
+        marginBottom: 14, // Reduced spacing between cards to 14
+        backgroundColor: '#202020', // Dark card background
+        padding: spacing.medium,
+        borderRadius: borderRadius.medium,
     },
     sectionHeader: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: 12,
+        marginBottom: spacing.medium,
     },
     sectionTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        marginLeft: 8,
+        ...text.title,
+        color: colors.white,
+        marginLeft: spacing.small,
         flex: 1,
-        color: '#333333',
     },
     editButton: {
-        flexDirection: 'row',
+        padding: spacing.tiny,
         alignItems: 'center',
-        padding: 6,
-    },
-    editButtonText: {
-        marginLeft: 4,
-        color: '#007AFF',
-        fontWeight: '500',
+        justifyContent: 'center',
     },
     sectionContent: {
-        fontSize: 16,
-        lineHeight: 24,
-        color: '#555555',
+        ...text.bodyMedium,
+        color: colors.white,
     },
     infoRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 8,
-        paddingBottom: 8,
+        marginBottom: spacing.small,
+        paddingBottom: spacing.small,
         borderBottomWidth: 1,
-        borderBottomColor: '#F0F0F0',
+        borderBottomColor: '#333333',
     },
     infoLabel: {
-        fontSize: 16,
-        fontWeight: '500',
-        color: '#555555',
+        ...text.bodyMedium,
+        color: colors.lightGray,
     },
     infoValue: {
-        fontSize: 16,
-        color: '#333333',
+        ...text.bodyMedium,
+        color: colors.white,
     },
     accessibilityDetails: {
-        marginTop: 8,
-        backgroundColor: '#F9F9F9',
-        padding: 12,
-        borderRadius: 6,
+        marginTop: spacing.small,
+        backgroundColor: '#333333',
+        padding: spacing.medium,
+        borderRadius: borderRadius.small,
     },
     accessibilityText: {
-        fontSize: 16,
-        color: '#333333',
-        marginTop: 4,
+        ...text.bodyMedium,
+        color: colors.white,
+        marginTop: spacing.tiny,
     },
     devSection: {
-        marginTop: 10,
-        marginBottom: 20,
-        padding: 16,
-        backgroundColor: '#EFEFEF',
-        borderRadius: 8,
+        marginTop: spacing.medium,
+        marginBottom: spacing.large,
+        padding: spacing.medium,
+        backgroundColor: '#333333',
+        borderRadius: borderRadius.medium,
         borderLeftWidth: 4,
-        borderLeftColor: '#999999',
+        borderLeftColor: colors.lightGray,
     },
     devTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 12,
-        color: '#555555',
+        ...text.title,
+        color: colors.white,
+        marginBottom: spacing.medium,
     },
     resetButton: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#FF3B30',
-        borderRadius: 8,
-        padding: 12,
+        backgroundColor: colors.danger,
+        borderRadius: borderRadius.medium,
+        padding: spacing.medium,
     },
     resetButtonText: {
-        color: '#FFFFFF',
-        fontWeight: 'bold',
-        marginLeft: 8,
+        ...text.bodyMediumBold,
+        color: colors.white,
+        marginLeft: spacing.small,
     },
     disclaimer: {
-        marginTop: 10,
-        marginBottom: 20,
+        marginTop: spacing.medium,
+        marginBottom: spacing.large,
         textAlign: 'center',
         fontStyle: 'italic',
-        color: '#666666',
-        fontSize: 14,
+        color: colors.lightGray,
+        ...text.bodySmall,
     },
 
     // Modal styles
     modalContainer: {
         flex: 1,
         justifyContent: 'flex-end',
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: 'rgba(0,0,0,0.7)',
     },
     modalView: {
-        backgroundColor: 'white',
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 20,
-        padding: 20,
+        backgroundColor: '#202020',
+        borderTopLeftRadius: borderRadius.large,
+        borderTopRightRadius: borderRadius.large,
+        padding: spacing.large,
         maxHeight: '80%',
     },
     modalContent: {
-        paddingBottom: 20,
+        paddingBottom: spacing.large,
     },
     modalTitle: {
-        fontSize: 24,
-        fontWeight: 'bold',
-        marginBottom: 20,
+        ...text.headline,
+        color: colors.white,
+        marginBottom: spacing.large,
         textAlign: 'center',
     },
     modalButtons: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginTop: 20,
+        marginTop: spacing.large,
     },
     modalButton: {
         flex: 1,
-        padding: 15,
-        borderRadius: 8,
+        padding: spacing.medium,
+        borderRadius: borderRadius.medium,
         alignItems: 'center',
     },
     cancelButton: {
-        backgroundColor: '#F2F2F2',
-        marginRight: 10,
+        backgroundColor: '#444444',
+        marginRight: spacing.medium,
     },
     cancelButtonText: {
-        color: '#333333',
-        fontWeight: '600',
+        ...text.bodyMediumBold,
+        color: colors.white,
     },
     saveButton: {
-        backgroundColor: '#007AFF',
-        marginLeft: 10,
+        backgroundColor: colors.primary,
+        marginLeft: spacing.medium,
     },
     saveButtonText: {
-        color: '#FFFFFF',
-        fontWeight: '600',
+        ...text.bodyMediumBold,
+        color: colors.white,
     },
 
     // Field styles
     fieldContainer: {
-        marginBottom: 20,
+        marginBottom: spacing.large,
     },
     fieldLabel: {
-        fontSize: 16,
-        fontWeight: '500',
-        marginBottom: 8,
+        ...text.bodyMedium,
+        color: colors.white,
+        marginBottom: spacing.small,
     },
     input: {
-        backgroundColor: '#F9F9F9',
-        borderRadius: 8,
-        padding: 12,
+        backgroundColor: '#333333',
+        borderRadius: borderRadius.medium,
+        padding: spacing.medium,
         borderWidth: 1,
-        borderColor: '#E0E0E0',
-        fontSize: 16,
+        borderColor: '#444444',
+        color: colors.white,
+        ...text.bodyMedium,
     },
     inputDisabled: {
-        backgroundColor: '#EFEFEF',
-        color: '#999999',
+        backgroundColor: '#2A2A2A',
+        color: '#888888',
     },
     textArea: {
         minHeight: 100,
@@ -770,51 +762,50 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: 12,
-        borderRadius: 8,
-        backgroundColor: '#F9F9F9',
+        padding: spacing.medium,
+        borderRadius: borderRadius.medium,
+        backgroundColor: '#333333',
         borderWidth: 1,
-        borderColor: '#007AFF',
+        borderColor: colors.primary,
     },
     locationButtonActive: {
-        backgroundColor: '#007AFF',
+        backgroundColor: colors.primary,
     },
     locationButtonText: {
-        marginLeft: 8,
-        fontSize: 16,
-        color: '#007AFF',
-        fontWeight: '500',
+        ...text.bodyMedium,
+        marginLeft: spacing.small,
+        color: colors.primary,
     },
     locationButtonTextActive: {
-        color: '#FFFFFF',
+        color: colors.white,
     },
     locationConfirmation: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 12,
-        padding: 8,
-        backgroundColor: '#F0FFF0',
-        borderRadius: 6,
+        marginTop: spacing.medium,
+        padding: spacing.small,
+        backgroundColor: '#334433',
+        borderRadius: borderRadius.small,
     },
     locationConfirmationText: {
-        marginLeft: 8,
-        color: '#4CAF50',
-        fontSize: 14,
+        marginLeft: spacing.small,
+        color: colors.success,
+        ...text.bodySmall,
     },
     separator: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginVertical: 16,
+        marginVertical: spacing.medium,
     },
     separatorLine: {
         flex: 1,
         height: 1,
-        backgroundColor: '#E0E0E0',
+        backgroundColor: '#444444',
     },
     separatorText: {
-        paddingHorizontal: 12,
-        color: '#999999',
-        fontWeight: '500',
+        paddingHorizontal: spacing.medium,
+        color: colors.lightGray,
+        ...text.bodyMedium,
     },
 
     // Counter styles
@@ -822,20 +813,20 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
-        marginTop: 8,
+        marginTop: spacing.small,
     },
     counterButton: {
         width: 40,
         height: 40,
         borderRadius: 20,
-        backgroundColor: '#F0F0F0',
+        backgroundColor: '#333333',
         alignItems: 'center',
         justifyContent: 'center',
     },
     counterText: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        paddingHorizontal: 20,
+        ...text.title,
+        color: colors.white,
+        paddingHorizontal: spacing.large,
     },
 
     // Switch styles
@@ -843,70 +834,70 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 20,
+        marginBottom: spacing.large,
     },
 
     // Notification styles
     notificationOptions: {
-        marginTop: 8,
+        marginTop: spacing.small,
     },
     notificationOption: {
         flexDirection: 'row',
-        padding: 16,
-        borderRadius: 8,
-        marginBottom: 12,
-        backgroundColor: '#F9F9F9',
+        padding: spacing.medium,
+        borderRadius: borderRadius.medium,
+        marginBottom: spacing.medium,
+        backgroundColor: '#333333',
         borderWidth: 1,
-        borderColor: '#E0E0E0',
+        borderColor: '#444444',
         alignItems: 'center',
     },
     activeNotificationOption: {
-        backgroundColor: '#E3F2FD',
-        borderColor: '#007AFF',
+        backgroundColor: '#1A3A5A',
+        borderColor: colors.primary,
     },
     notificationContent: {
         flex: 1,
     },
     notificationTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginTop: 8,
-        color: '#333333',
+        ...text.bodyLargeBold,
+        marginTop: spacing.small,
+        color: colors.white,
     },
     activeNotificationTitle: {
-        color: '#007AFF',
+        color: colors.primary,
     },
     notificationDescription: {
-        marginTop: 4,
-        color: '#666666',
+        ...text.bodyMedium,
+        marginTop: spacing.tiny,
+        color: colors.lightGray,
     },
     activeNotificationDescription: {
-        color: '#444444',
+        color: colors.white,
     },
     radioButton: {
         width: 22,
         height: 22,
         borderRadius: 11,
         borderWidth: 2,
-        borderColor: '#999999',
-        marginLeft: 12,
+        borderColor: '#777777',
+        marginLeft: spacing.medium,
         alignItems: 'center',
         justifyContent: 'center',
     },
     radioButtonActive: {
-        borderColor: '#007AFF',
+        borderColor: colors.primary,
     },
     radioButtonInner: {
         width: 12,
         height: 12,
         borderRadius: 6,
-        backgroundColor: '#007AFF',
+        backgroundColor: colors.primary,
     },
     privacyNote: {
-        marginTop: 16,
+        marginTop: spacing.medium,
         textAlign: 'center',
-        fontSize: 14,
-        color: '#666666',
+        ...text.bodySmall,
+        color: colors.lightGray,
         fontStyle: 'italic',
     },
 });

@@ -314,12 +314,12 @@ const OnboardingScreen = ({ onComplete }) => {
             ]}
         >
             <Text style={onboardingStyles.headline}>Household Information</Text>
-            <Text style={onboardingStyles.bodyLarge}>
+            <Text style={{...onboardingStyles.bodyLarge, marginBottom:50}}>
                 Help us understand your needs during an emergency.
             </Text>
 
             <View style={onboardingStyles.fieldContainer}>
-                <Text style={onboardingStyles.label}>How many people in your household?</Text>
+                <Text style={onboardingStyles.label}>How many people are in your household?</Text>
                 <View style={onboardingStyles.counterContainer}>
                     <TouchableOpacity
                         style={onboardingStyles.counterButton}

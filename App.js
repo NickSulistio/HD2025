@@ -111,9 +111,9 @@ export default function App() {
                             } else if (route.name === 'Resources') {
                                 iconName = focused ? 'medical' : 'medical-outline';
                             } else if (route.name === 'Safety') {
-                                iconName = focused ? 'share-social' : 'share-social-outline';
+                                iconName = focused ? 'bag-add' : 'bag-add-outline';
                             } else if (route.name === 'Info') {
-                                iconName = focused ? 'information-circle' : 'information-circle-outline';
+                                iconName = focused ? 'home' : 'home-outline';
                             }
 
                             return <Ionicons name={iconName} size={size} color={color} />;
@@ -146,7 +146,7 @@ export default function App() {
                     <Tab.Screen
                         name="Safety"
                         component={SafetyPostcardScreen}
-                        options={{ title: 'Safety Postcard' }}
+                        options={{ title: 'Relief' }}
                     />
 
                     <Tab.Screen
