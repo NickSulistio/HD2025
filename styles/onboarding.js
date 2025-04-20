@@ -15,7 +15,7 @@ export const onboardingStyles = StyleSheet.create({
 
     // Add more padding to the progress container
     progressContainer: {
-        paddingTop: spacing.large, // Increased from 16
+        paddingTop: spacing.medium, // Increased from 16
         paddingBottom: spacing.medium, // Added padding below
         paddingHorizontal: spacing.large,
         marginBottom: spacing.medium, // Increased from 16
@@ -26,12 +26,12 @@ export const onboardingStyles = StyleSheet.create({
     scrollViewContent: {
         paddingHorizontal: spacing.large,
         paddingBottom: spacing.extraLarge,
-        paddingTop: spacing.large, // Add top padding to push content down
+        // paddingTop: spacing.large, // Add top padding to push content down
     },
 
     // And update the step container to have more space at the top
     stepContainer: {
-        paddingTop: spacing.large, // Increased from medium
+        // paddingTop: spacing.tiny, // Increased from medium
     },
 
     progressBar: {
@@ -52,7 +52,7 @@ export const onboardingStyles = StyleSheet.create({
         fontFamily: fonts.body,
         fontSize: fontSizes.bodySmall,
         color: colors.white,
-        textAlign: 'center',
+        textAlign: 'right',
         marginTop: 4,
     },
 

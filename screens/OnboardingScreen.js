@@ -11,7 +11,10 @@ import {
     Switch,
     ActivityIndicator,
     Animated,
+    Easing,
     Alert,
+    Keyboard,
+    TouchableWithoutFeedback,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
@@ -23,17 +26,14 @@ import { onboardingStyles } from '../styles/onboarding';
 const OnboardingScreen = ({ onComplete }) => {
     // Near the top of your component function, add:
     const scrollViewRef = useRef(null);
-
-    // At the end of goToNextStep, before the closing brace, add:
-    if (scrollViewRef.current) {
-        scrollViewRef.current.scrollTo({ x: 0, y: 0, animated: false });
-    }
     const [step, setStep] = useState(1);
     const [locationLoading, setLocationLoading] = useState(false);
 
     // Animation refs
     const slideAnim = useRef(new Animated.Value(0)).current;
     const fadeAnim = useRef(new Animated.Value(1)).current;
+    // New animated value for progress bar
+    const progressAnim = useRef(new Animated.Value(1/3)).current;
 
     // Step 1: Location data
     const [zipCode, setZipCode] = useState('');
@@ -109,10 +109,19 @@ const OnboardingScreen = ({ onComplete }) => {
     };
 
     // Animation for smooth transitions between steps
-    // In the OnboardingScreen.js component, let's update the animateTransition function:
-
     const animateTransition = (nextStep) => {
-        // First, slide and fade out current content
+        // Calculate the new progress value
+        const newProgressValue = nextStep / 3;
+
+        // First animate the progress bar separately (before content animation)
+        Animated.timing(progressAnim, {
+            toValue: newProgressValue,
+            duration: 250,
+            easing: Easing.ease, // Use standard ease function
+            useNativeDriver: false, // Required for layout properties
+        }).start();
+
+        // Then handle content transition
         Animated.parallel([
             Animated.timing(fadeAnim, {
                 toValue: 0,
@@ -123,7 +132,7 @@ const OnboardingScreen = ({ onComplete }) => {
                 toValue: -20, // Slide slightly up when exiting
                 duration: 150,
                 useNativeDriver: true,
-            })
+            }),
         ]).start(() => {
             // Update step
             setStep(nextStep);
@@ -179,6 +188,11 @@ const OnboardingScreen = ({ onComplete }) => {
                 onComplete(userData);
             }
         }
+
+        // Scroll to top after step change
+        if (scrollViewRef.current) {
+            scrollViewRef.current.scrollTo({ x: 0, y: 0, animated: false });
+        }
     };
 
     const goToPreviousStep = () => {
@@ -191,18 +205,28 @@ const OnboardingScreen = ({ onComplete }) => {
     useEffect(() => {
         slideAnim.setValue(0);
         fadeAnim.setValue(1);
+        progressAnim.setValue(0.33); // Set initial progress (1/3 for step 1)
     }, []);
 
-    // Render simplified progress indicator
+    // Render animated progress indicator
     const renderProgressBar = () => (
         <View style={onboardingStyles.progressContainer}>
             <View style={onboardingStyles.progressBar}>
-                <View style={[
-                    onboardingStyles.progressFill,
-                    { width: `${(step / 3) * 100}%` }
-                ]} />
+                <Animated.View
+                    style={[
+                        onboardingStyles.progressFill,
+                        {
+                            width: progressAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: ['0%', '100%']
+                            })
+                        }
+                    ]}
+                />
             </View>
-            <Text style={onboardingStyles.stepText}>Step {step} of 3</Text>
+            <Text style={[onboardingStyles.stepText, { textAlign: 'right' }]}>
+                Step {step} of 3
+            </Text>
         </View>
     );
 
@@ -222,17 +246,16 @@ const OnboardingScreen = ({ onComplete }) => {
             <View style={onboardingStyles.fieldContainer}>
                 <Text style={onboardingStyles.label}>ZIP Code</Text>
                 <TextInput
-                    style={[
-                        onboardingStyles.input,
-                        useCurrentLocation && onboardingStyles.inputDisabled
-                    ]}
+                    style={onboardingStyles.input}
                     value={zipCode}
                     onChangeText={setZipCode}
                     placeholder="Enter your ZIP code"
                     placeholderTextColor="#888888"
                     keyboardType="numeric"
                     maxLength={5}
-                    editable={!useCurrentLocation}
+                    returnKeyType="done"
+                    onSubmitEditing={Keyboard.dismiss}
+                    blurOnSubmit={true}
                 />
             </View>
 
@@ -446,40 +469,68 @@ const OnboardingScreen = ({ onComplete }) => {
 
     return (
         <KeyboardAvoidingView
-            style={onboardingStyles.container}
+            style={[onboardingStyles.container, { flex: 1 }]}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             keyboardVerticalOffset={Platform.OS === 'ios' ? 64 : 0}
         >
-            {/* Progress bar - kept outside the ScrollView to ensure visibility */}
-            <View style={{ paddingTop: Platform.OS === 'ios' ? 50 : 25 }}>
-                {renderProgressBar()}
-            </View>
+            {/* Dismiss keyboard when tapping outside of TextInput */}
+            <TouchableWithoutFeedback onPress={Keyboard.dismiss} accessible={false}>
+                <View style={{ flex: 1 }}>
+                    {/* Progress bar - kept outside the ScrollView to ensure visibility */}
+                    <View style={{ paddingTop: Platform.OS === 'ios' ? 30 : 25 }}>
+                        {renderProgressBar()}
+                    </View>
 
-            {/* Back button */}
-            {step > 1 && (
-                <TouchableOpacity
-                    style={onboardingStyles.backButton}
-                    onPress={goToPreviousStep}
-                >
-                    <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
-                    <Text style={onboardingStyles.backButtonText}>Back</Text>
-                </TouchableOpacity>
-            )}
+                    {/* Main Content - Wrap in a flex View */}
+                    <View style={{ flex: 1 }}>
+                        <ScrollView
+                            ref={scrollViewRef}
+                            style={onboardingStyles.scrollView}
+                            contentContainerStyle={onboardingStyles.scrollViewContent}
+                            keyboardShouldPersistTaps="handled"
+                        >
+                            {step === 1 && renderLocationStep()}
+                            {step === 2 && renderHouseholdStep()}
+                            {step === 3 && renderNotificationsStep()}
 
-            {/* Content */}
-            <ScrollView
-                ref={scrollViewRef}
-                style={onboardingStyles.scrollView}
-                contentContainerStyle={onboardingStyles.scrollViewContent}
-                keyboardShouldPersistTaps="handled"
-            >
-                {step === 1 && renderLocationStep()}
-                {step === 2 && renderHouseholdStep()}
-                {step === 3 && renderNotificationsStep()}
-            </ScrollView>
+                            {/* Add extra padding at the bottom to ensure scrolling works well */}
+                            <View style={{ height: 80 }} />
+                        </ScrollView>
+                    </View>
+                </View>
+            </TouchableWithoutFeedback>
 
-            {/* Footer with continue button */}
-            <View style={onboardingStyles.footer}>
+            {/* Footer with continue button and back button - positioned absolutely */}
+            <View style={[onboardingStyles.footer, {
+                position: 'absolute',
+                bottom: 20,
+                left: 0,
+                right: 0,
+                borderTopWidth: 0, // Remove the top border
+                paddingTop: 0, // Reduce top padding to bring elements closer
+            }]}>
+                {/* Back button (only shown on steps 2 and 3) */}
+                {step > 1 && (
+                    <TouchableOpacity
+                        style={{
+                            alignItems: 'center',
+                            paddingVertical: 12,
+                            marginBottom: 8, // Add margin between back and continue
+                        }}
+                        onPress={goToPreviousStep}
+                    >
+                        <Text style={{
+                            fontFamily: 'OpenSans',
+                            fontSize: 15,
+                            color: '#FFFFFF',
+                            fontWeight: '500',
+                        }}>
+                            Back
+                        </Text>
+                    </TouchableOpacity>
+                )}
+
+                {/* Continue button */}
                 <TouchableOpacity
                     style={onboardingStyles.continueButton}
                     onPress={goToNextStep}
